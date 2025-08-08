@@ -11,10 +11,12 @@ CREATE INDEX idx_user_email ON users(email);
 CREATE TABLE categories (
     category_id UUID PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('INCOME', 'EXPENSE', 'TRANSFER'))
+    type VARCHAR(20) NOT NULL CHECK (type IN ('INCOME', 'EXPENSE', 'TRANSFER')),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_category_type ON categories(type);
+CREATE INDEX idx_category_user ON categories(user_id);
 
 CREATE TABLE transactions (
     transaction_id UUID PRIMARY KEY,

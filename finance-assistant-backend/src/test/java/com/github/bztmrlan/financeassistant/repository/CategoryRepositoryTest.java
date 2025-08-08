@@ -2,16 +2,19 @@ package com.github.bztmrlan.financeassistant.repository;
 
 import com.github.bztmrlan.financeassistant.enums.CategoryType;
 import com.github.bztmrlan.financeassistant.model.Category;
+import com.github.bztmrlan.financeassistant.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 public class CategoryRepositoryTest {
@@ -19,26 +22,44 @@ public class CategoryRepositoryTest {
     @Autowired
     private CategoryRepository categoryRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private TestEntityManager entityManager;
+
+    private User testUser;
     private Category expenseCategory;
     private Category incomeCategory;
     private Category transferCategory;
 
     @BeforeEach
     void setup() {
+        // Create a test user
+        testUser = User.builder()
+                .name("Test User")
+                .email("test@example.com")
+                .password("password")
+                .createdAt(Instant.now())
+                .build();
+        testUser = userRepository.save(testUser);
 
         expenseCategory = Category.builder()
                 .name("Groceries")
                 .type(CategoryType.EXPENSE)
+                .user(testUser)
                 .build();
 
         incomeCategory = Category.builder()
                 .name("Salary")
                 .type(CategoryType.INCOME)
+                .user(testUser)
                 .build();
 
         transferCategory = Category.builder()
                 .name("Bank Transfer")
                 .type(CategoryType.TRANSFER)
+                .user(testUser)
                 .build();
     }
 
@@ -126,9 +147,9 @@ public class CategoryRepositoryTest {
     @Test
     @DisplayName("Should find multiple categories of same type")
     void testFindMultipleCategoriesOfSameType() {
-        Category groceries = Category.builder().name("Groceries").type(CategoryType.EXPENSE).build();
-        Category dining = Category.builder().name("Dining").type(CategoryType.EXPENSE).build();
-        Category transportation = Category.builder().name("Transportation").type(CategoryType.EXPENSE).build();
+        Category groceries = Category.builder().name("Groceries").type(CategoryType.EXPENSE).user(testUser).build();
+        Category dining = Category.builder().name("Dining").type(CategoryType.EXPENSE).user(testUser).build();
+        Category transportation = Category.builder().name("Transportation").type(CategoryType.EXPENSE).user(testUser).build();
 
         categoryRepository.save(groceries);
         categoryRepository.save(dining);

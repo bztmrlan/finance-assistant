@@ -22,4 +22,15 @@ public interface RuleRepository extends JpaRepository<Rule, UUID> {
             @Param("userId") UUID userId,
             @Param("period") TimePeriod period
     );
+
+    List<Rule> findByUserIdAndActiveTrue(UUID userId);
+
+    @Query("SELECT r FROM Rule r " +
+            "WHERE r.user.id = :userId " +
+            "AND r.active = true " +
+            "AND (r.category.id = :categoryId OR r.category.id IS NULL)")
+    List<Rule> findByUserIdAndActiveTrueAndCategoryIdOrUserIdAndActiveTrueAndCategoryIdIsNull(
+            @Param("userId") UUID userId,
+            @Param("categoryId") UUID categoryId
+    );
 }

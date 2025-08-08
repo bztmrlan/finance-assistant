@@ -24,4 +24,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("end") LocalDate endDate
     );
 
+    List<Transaction> findByUserIdAndCategoryIdAndDateBetween(
+            UUID userId, 
+            UUID categoryId, 
+            LocalDate startDate, 
+            LocalDate endDate
+    );
+
 }

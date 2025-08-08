@@ -59,12 +59,14 @@ public class GoalRepositoryTest {
         savingsCategory = Category.builder()
                 .name("Savings")
                 .type(CategoryType.EXPENSE)
+                .user(user1)
                 .build();
         savingsCategory = categoryRepository.save(savingsCategory);
 
         vacationCategory = Category.builder()
                 .name("Vacation")
                 .type(CategoryType.EXPENSE)
+                .user(user1)
                 .build();
         vacationCategory = categoryRepository.save(vacationCategory);
 

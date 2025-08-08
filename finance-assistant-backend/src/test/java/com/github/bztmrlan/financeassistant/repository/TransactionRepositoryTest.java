@@ -59,12 +59,14 @@ public class TransactionRepositoryTest {
         groceriesCategory = Category.builder()
                 .name("Groceries")
                 .type(CategoryType.EXPENSE)
+                .user(user1)
                 .build();
         groceriesCategory = categoryRepository.save(groceriesCategory);
 
         salaryCategory = Category.builder()
                 .name("Salary")
                 .type(CategoryType.INCOME)
+                .user(user1)
                 .build();
         salaryCategory = categoryRepository.save(salaryCategory);
 

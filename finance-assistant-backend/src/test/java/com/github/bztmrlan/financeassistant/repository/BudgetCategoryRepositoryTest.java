@@ -67,18 +67,21 @@ public class BudgetCategoryRepositoryTest {
         groceriesCategory = Category.builder()
                 .name("Groceries")
                 .type(CategoryType.EXPENSE)
+                .user(user1)
                 .build();
         groceriesCategory = categoryRepository.save(groceriesCategory);
 
         diningCategory = Category.builder()
                 .name("Dining")
                 .type(CategoryType.EXPENSE)
+                .user(user1)
                 .build();
         diningCategory = categoryRepository.save(diningCategory);
 
         transportationCategory = Category.builder()
                 .name("Transportation")
                 .type(CategoryType.EXPENSE)
+                .user(user2)
                 .build();
         transportationCategory = categoryRepository.save(transportationCategory);
 
