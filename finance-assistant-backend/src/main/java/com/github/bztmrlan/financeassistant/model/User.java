@@ -31,7 +31,6 @@ public class User {
 
 
     @JsonIgnore
-    @Getter(AccessLevel.NONE)
     private String password;
 
     private Instant createdAt;
