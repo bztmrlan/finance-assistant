@@ -43,6 +43,9 @@ public class Goal {
     @Column(nullable = false)
     private LocalDate targetDate;
 
+    @Column(nullable = false, length = 3)
+    private String currency = "USD";
+
     @Column(nullable = false)
     private boolean completed = false;
 

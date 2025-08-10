@@ -79,6 +79,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("5000.00"))
                 .targetDate(LocalDate.of(2024, 12, 31))
                 .completed(false)
+                .currency("USD")
                 .build();
 
         goal2 = Goal.builder()
@@ -89,6 +90,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("2000.00"))
                 .targetDate(LocalDate.of(2024, 6, 30))
                 .completed(false)
+                .currency("USD")
                 .build();
 
         goal3 = Goal.builder()
@@ -99,6 +101,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("25000.00"))
                 .targetDate(LocalDate.of(2025, 12, 31))
                 .completed(false)
+                .currency("USD")
                 .build();
     }
 
@@ -217,6 +220,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("1000.00"))
                 .targetDate(LocalDate.of(2024, 12, 31))
                 .completed(true)
+                .currency("USD")
                 .build();
 
         goalRepository.save(goal1);
@@ -252,6 +256,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("1000.00"))
                 .targetDate(LocalDate.of(2024, 12, 31))
                 .completed(false)
+                .currency("USD")
                 .build();
 
         Goal saved = goalRepository.save(goalWithoutCategory);
@@ -272,6 +277,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("1000.00"))
                 .targetDate(LocalDate.of(2024, 12, 31))
                 .completed(false)
+                .currency("USD")
                 .build();
 
         Goal highProgressGoal = Goal.builder()
@@ -282,6 +288,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("9000.00"))
                 .targetDate(LocalDate.of(2024, 12, 31))
                 .completed(false)
+                .currency("USD")
                 .build();
 
         goalRepository.save(lowProgressGoal);
@@ -328,6 +335,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("500.00"))
                 .targetDate(LocalDate.of(2024, 12, 31))
                 .completed(false)
+                .currency("USD")
                 .build();
 
         Goal goal2 = Goal.builder()
@@ -338,6 +346,7 @@ public class GoalRepositoryTest {
                 .currentAmount(new BigDecimal("1000.00"))
                 .targetDate(LocalDate.of(2024, 12, 31))
                 .completed(false)
+                .currency("USD")
                 .build();
 
         goalRepository.save(goal1);
