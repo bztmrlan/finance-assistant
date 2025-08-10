@@ -15,68 +15,102 @@ import java.util.List;
 public class ScheduledRuleEvaluationService {
 
     private final RuleEngineService ruleEngineService;
+    private final BudgetEvaluationService budgetEvaluationService;
     private final UserRepository userRepository;
 
     /**
-     * Evaluate rules for all users daily at 6:00 AM
+     * Evaluate rules and budgets for all users daily at 6:00 AM
      */
     @Scheduled(cron = "0 0 6 * * ?")
-    public void evaluateRulesDaily() {
-        log.info("Starting daily rule evaluation for all users");
+    public void evaluateRulesAndBudgetsDaily() {
+        log.info("Starting daily rule and budget evaluation for all users");
         
         List<User> users = userRepository.findAll();
         
         for (User user : users) {
             try {
+
                 ruleEngineService.evaluateRulesForUser(user.getId());
                 log.debug("Daily rule evaluation completed for user: {}", user.getId());
+                
+
+                budgetEvaluationService.evaluateUserBudgets(user.getId());
+                log.debug("Daily budget evaluation completed for user: {}", user.getId());
+                
             } catch (Exception e) {
-                log.error("Error during daily rule evaluation for user: {}", user.getId(), e);
+                log.error("Error during daily evaluation for user: {}", user.getId(), e);
             }
         }
         
-        log.info("Daily rule evaluation completed for {} users", users.size());
+        log.info("Daily rule and budget evaluation completed for {} users", users.size());
     }
 
     /**
-     * Evaluate rules for all users weekly on Sunday at 8:00 AM
+     * Evaluate rules and budgets for all users weekly on Sunday at 8:00 AM
      */
     @Scheduled(cron = "0 0 8 ? * SUN")
-    public void evaluateRulesWeekly() {
-        log.info("Starting weekly rule evaluation for all users");
+    public void evaluateRulesAndBudgetsWeekly() {
+        log.info("Starting weekly rule and budget evaluation for all users");
         
         List<User> users = userRepository.findAll();
         
         for (User user : users) {
             try {
+
                 ruleEngineService.evaluateRulesForUser(user.getId());
                 log.debug("Weekly rule evaluation completed for user: {}", user.getId());
+                
+
+                budgetEvaluationService.evaluateUserBudgets(user.getId());
+                log.debug("Weekly budget evaluation completed for user: {}", user.getId());
+                
             } catch (Exception e) {
-                log.error("Error during weekly rule evaluation for user: {}", user.getId(), e);
+                log.error("Error during weekly evaluation for user: {}", user.getId(), e);
             }
         }
         
-        log.info("Weekly rule evaluation completed for {} users", users.size());
+        log.info("Weekly rule and budget evaluation completed for {} users", users.size());
     }
 
     /**
-     * Evaluate rules for all users monthly on the 1st at 9:00 AM
+     * Evaluate rules and budgets for all users monthly on the 1st at 9:00 AM
      */
     @Scheduled(cron = "0 0 9 1 * ?")
-    public void evaluateRulesMonthly() {
-        log.info("Starting monthly rule evaluation for all users");
+    public void evaluateRulesAndBudgetsMonthly() {
+        log.info("Starting monthly rule and budget evaluation for all users");
         
         List<User> users = userRepository.findAll();
         
         for (User user : users) {
             try {
+
                 ruleEngineService.evaluateRulesForUser(user.getId());
                 log.debug("Monthly rule evaluation completed for user: {}", user.getId());
+                
+
+                budgetEvaluationService.evaluateUserBudgets(user.getId());
+                log.debug("Monthly budget evaluation completed for user: {}", user.getId());
+                
             } catch (Exception e) {
-                log.error("Error during monthly rule evaluation for user: {}", user.getId(), e);
+                log.error("Error during monthly evaluation for user: {}", user.getId(), e);
             }
         }
         
-        log.info("Monthly rule evaluation completed for {} users", users.size());
+        log.info("Monthly rule and budget evaluation completed for {} users", users.size());
     }
-} 
+
+    /**
+     * Evaluate budgets approaching end date daily at 2:00 PM
+     */
+    @Scheduled(cron = "0 0 14 * * ?")
+    public void evaluateBudgetsApproachingEnd() {
+        log.info("Starting evaluation of budgets approaching end date");
+        
+        try {
+            budgetEvaluationService.evaluateBudgetsApproachingEnd(7);
+            log.info("Evaluation of budgets approaching end date completed");
+        } catch (Exception e) {
+            log.error("Error during evaluation of budgets approaching end date", e);
+        }
+    }
+}
