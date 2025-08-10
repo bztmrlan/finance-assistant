@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
@@ -31,4 +32,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             LocalDate endDate
     );
 
+    List<Transaction> findByUserIdAndDateAndAmountAndDescription(
+            UUID userId, LocalDate date, BigDecimal amount, String description);
 }
