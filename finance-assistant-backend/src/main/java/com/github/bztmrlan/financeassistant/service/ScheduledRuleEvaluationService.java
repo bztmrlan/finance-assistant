@@ -18,9 +18,7 @@ public class ScheduledRuleEvaluationService {
     private final BudgetEvaluationService budgetEvaluationService;
     private final UserRepository userRepository;
 
-    /**
-     * Evaluate rules and budgets for all users daily at 6:00 AM
-     */
+
     @Scheduled(cron = "0 0 6 * * ?")
     public void evaluateRulesAndBudgetsDaily() {
         log.info("Starting daily rule and budget evaluation for all users");
@@ -45,9 +43,7 @@ public class ScheduledRuleEvaluationService {
         log.info("Daily rule and budget evaluation completed for {} users", users.size());
     }
 
-    /**
-     * Evaluate rules and budgets for all users weekly on Sunday at 8:00 AM
-     */
+
     @Scheduled(cron = "0 0 8 ? * SUN")
     public void evaluateRulesAndBudgetsWeekly() {
         log.info("Starting weekly rule and budget evaluation for all users");
@@ -72,9 +68,7 @@ public class ScheduledRuleEvaluationService {
         log.info("Weekly rule and budget evaluation completed for {} users", users.size());
     }
 
-    /**
-     * Evaluate rules and budgets for all users monthly on the 1st at 9:00 AM
-     */
+
     @Scheduled(cron = "0 0 9 1 * ?")
     public void evaluateRulesAndBudgetsMonthly() {
         log.info("Starting monthly rule and budget evaluation for all users");
@@ -99,9 +93,7 @@ public class ScheduledRuleEvaluationService {
         log.info("Monthly rule and budget evaluation completed for {} users", users.size());
     }
 
-    /**
-     * Evaluate budgets approaching end date daily at 2:00 PM
-     */
+
     @Scheduled(cron = "0 0 14 * * ?")
     public void evaluateBudgetsApproachingEnd() {
         log.info("Starting evaluation of budgets approaching end date");

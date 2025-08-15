@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Upload - Finance Assistant</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .upload-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .upload-section {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .file-upload-area {
+            border: 3px dashed #007bff;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #0056b3;
+            background: #e9ecef;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .file-name {
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .file-size {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .upload-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .option-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .option-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+        
+        .option-group select,
+        .option-group input {
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .option-group select:focus,
+        .option-group input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        .option-help {
+            color: #6c757d;
+            font-size: 0.8em;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #007bff;
+        }
+        
+        .file-preview-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .file-preview-section h4 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .preview-table-container {
+            overflow-x: auto;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 14px;
+        }
+        
+        .preview-table th,
+        .preview-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+            border-right: 1px solid #dee2e6;
+        }
+        
+        .preview-table th {
+            background: #007bff;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .preview-table th:last-child,
+        .preview-table td:last-child {
+            border-right: none;
+        }
+        
+        .preview-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .preview-table tr:hover {
+            background: #e9ecef;
+        }
+        
+        .upload-button {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .upload-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,123,255,0.3);
+        }
+        
+        .upload-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .results-container {
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #007bff;
+        }
+        
+        .result-card.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .result-card.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .result-card.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .error-list,
+        .warning-list {
+            margin: 15px 0;
+        }
+        
+        .error-list h4,
+        .warning-list h4 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        
+        .error-list ul,
+        .warning-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .error-list li,
+        .warning-list li {
+            margin: 5px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid;
+        }
+        
+        .error-list li {
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .warning-list li {
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+
+        
+        .navigation-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .nav-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        
+        .nav-button:hover {
+            background: #5a67d8;
+        }
+
+
+
+        .modal-body li {
+            margin-bottom: 8px;
+            color: #444;
+            font-size: 0.9em;
+        }
+
+        .modal-body strong {
+            color: #333;
+        }
+
+
+        
+        .upload-history {
+            margin-top: 15px;
+        }
+        
+        .history-placeholder {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .history-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .history-item.success {
+            border-left-color: #28a745;
+        }
+        
+        .history-item.error {
+            border-left-color: #dc3545;
+        }
+        
+        .history-item.warning {
+            border-left-color: #ffc107;
+        }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .history-date {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .history-status {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+        }
+        
+        .history-item.success .history-status {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .history-item.error .history-status {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .history-item.warning .history-status {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .history-details {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        
+        .history-stats {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .history-stats .stat {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .upload-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .result-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+
+            
+            .navigation-buttons {
+                flex-direction: column;
+            }
+        }
+        
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .page-header p {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1>📊 Transaction Upload</h1>
+                <p>Upload your financial transactions from CSV or Excel files</p>
+            </div>
+        </div>
+
+        <div class="upload-container">
+            <!-- Navigation -->
+                    <div class="navigation-buttons">
+            <a href="dashboard.html" class="nav-button">🏠 Dashboard</a>
+            <a href="budget-management.html" class="nav-button">💰 Budget Management</a>
+            <a href="transaction-upload.html" class="nav-button">📤 Transaction Upload</a>
+            <a href="insight-service.html" class="nav-button">🧠 AI Insights</a>
+        </div>
+
+            <!-- File Upload Section -->
+            <div class="upload-section">
+                <h2>📁 Upload Transaction File</h2>
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div class="upload-icon">📁</div>
+                    <h3>Drop your file here or click to browse</h3>
+                    <p>Supported formats: CSV, Excel (.xlsx, .xls)</p>
+                    <input type="file" id="fileInput" class="file-input" accept=".csv,.xlsx,.xls">
+                </div>
+                
+                <div class="file-info" id="fileInfo">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-size" id="fileSize"></div>
+                </div>
+
+                <!-- File Preview Section -->
+                <div class="file-preview-section" id="filePreviewContainer" style="display: none;">
+                    <!-- Preview content will be dynamically generated -->
+                </div>
+            </div>
+
+            <!-- Upload Options -->
+            <div class="upload-section">
+                <h2>⚙️ Upload Options</h2>
+                <div class="upload-options">
+                    <div class="option-group">
+                        <label for="currency">Currency</label>
+                        <select id="currency">
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="JPY">JPY (¥)</option>
+                            <option value="CAD">CAD (C$)</option>
+                            <option value="AUD">AUD (A$)</option>
+                        </select>
+                        <small class="option-help">Auto-detected from file content</small>
+                    </div>
+                    
+                    <div class="option-group">
+                        <label for="dateFormat">Date Format</label>
+                        <select id="dateFormat">
+                            <option value="yyyy-MM-dd">yyyy-MM-dd (2024-01-15)</option>
+                            <option value="MM/dd/yyyy">MM/dd/yyyy (01/15/2024)</option>
+                            <option value="dd/MM/yyyy">dd/MM/yyyy (15/01/2024)</option>
+                            <option value="yyyy/MM/dd">yyyy/MM/dd (2024/01/15)</option>
+                        </select>
+                        <small class="option-help">Auto-detected from file content</small>
+                    </div>
+                    
+                    <div class="option-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="autoCategorize" checked>
+                            <label for="autoCategorize">Auto-categorize transactions</label>
+                            <small class="option-help">Use AI to categorize uncategorized transactions</small>
+                        </div>
+                    </div>
+                    
+                    <div class="option-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="skipDuplicates" checked>
+                            <label for="skipDuplicates">Skip duplicate transactions</label>
+                            <small class="option-help">Avoid importing duplicate entries</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="upload-button" id="uploadButton" disabled>
+                    📤 Upload Transactions
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Preparing upload...</div>
+            </div>
+
+            <!-- Results -->
+            <div class="results-container" id="resultsContainer">
+                <h2>📈 Upload Results</h2>
+                <div id="resultsContent"></div>
+            </div>
+
+
+
+            <!-- Upload History Section -->
+            <div class="upload-section">
+                <h2>📊 Recent Uploads</h2>
+                <div class="upload-history" id="uploadHistory">
+                    <div class="history-placeholder">
+                        <p>No recent uploads found. Upload your first file to see history here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="../js/config.js"></script>
+    <script src="../js/api-service.js"></script>
+    <script src="../js/transaction-upload.js"></script>
+</body>
+</html> 

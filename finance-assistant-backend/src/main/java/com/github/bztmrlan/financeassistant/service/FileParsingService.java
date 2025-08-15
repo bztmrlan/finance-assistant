@@ -5,7 +5,6 @@ import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,9 +21,7 @@ import java.util.List;
 @Slf4j
 public class FileParsingService {
 
-    /**
-     * Parses a CSV file and extracts transaction data
-     */
+
     public List<RawTransactionData> parseCSV(MultipartFile file, String dateFormat, String currency) throws IOException {
         List<RawTransactionData> transactions = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dateFormat);
@@ -55,9 +52,7 @@ public class FileParsingService {
         return transactions;
     }
 
-    /**
-     * Parses an Excel file and extracts transaction data
-     */
+
     public List<RawTransactionData> parseExcel(MultipartFile file, String dateFormat, String currency) throws IOException {
         List<RawTransactionData> transactions = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dateFormat);
@@ -85,9 +80,7 @@ public class FileParsingService {
         return transactions;
     }
 
-    /**
-     * Determines file type and parses accordingly
-     */
+
     public List<RawTransactionData> parseFile(MultipartFile file, String dateFormat, String currency) throws IOException {
         String fileName = file.getOriginalFilename();
         if (fileName == null) {
@@ -208,31 +201,24 @@ public class FileParsingService {
         if (cell == null) {
             throw new IllegalArgumentException("Amount cell is null");
         }
-        
-        switch (cell.getCellType()) {
-            case STRING:
-                return parseAmount(cell.getStringCellValue());
-            case NUMERIC:
-                return BigDecimal.valueOf(cell.getNumericCellValue());
-            default:
-                throw new IllegalArgumentException("Invalid amount cell type: " + cell.getCellType());
-        }
+
+        return switch (cell.getCellType()) {
+            case STRING -> parseAmount(cell.getStringCellValue());
+            case NUMERIC -> BigDecimal.valueOf(cell.getNumericCellValue());
+            default -> throw new IllegalArgumentException("Invalid amount cell type: " + cell.getCellType());
+        };
     }
 
     private String getCellValue(Cell cell, String defaultValue) {
         if (cell == null) {
             return defaultValue;
         }
-        
-        switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue().trim();
-            case NUMERIC:
-                return String.valueOf(cell.getNumericCellValue());
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            default:
-                return defaultValue;
-        }
+
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue().trim();
+            case NUMERIC -> String.valueOf(cell.getNumericCellValue());
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            default -> defaultValue;
+        };
     }
 } 

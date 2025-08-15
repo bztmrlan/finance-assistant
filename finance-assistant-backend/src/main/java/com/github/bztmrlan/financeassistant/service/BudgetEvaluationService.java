@@ -20,9 +20,6 @@ public class BudgetEvaluationService {
     private final BudgetRepository budgetRepository;
     private final BudgetManagementService budgetManagementService;
 
-    /**
-     * Evaluate all active budgets for a specific user
-     */
     public void evaluateUserBudgets(UUID userId) {
         log.info("Starting budget evaluation for user: {}", userId);
         
@@ -42,9 +39,7 @@ public class BudgetEvaluationService {
         log.info("Budget evaluation completed for user: {}. {} budgets evaluated.", userId, activeBudgets.size());
     }
 
-    /**
-     * Evaluate all active budgets for all users
-     */
+
     public void evaluateAllActiveBudgets() {
         log.info("Starting evaluation of all active budgets");
         
@@ -64,9 +59,7 @@ public class BudgetEvaluationService {
         log.info("All active budgets evaluation completed. {} budgets evaluated.", activeBudgets.size());
     }
 
-    /**
-     * Evaluate a specific budget
-     */
+
     public void evaluateBudget(UUID budgetId) {
         log.debug("Evaluating budget: {}", budgetId);
         
@@ -83,9 +76,7 @@ public class BudgetEvaluationService {
         }
     }
 
-    /**
-     * Check if budget period has ended and update status accordingly
-     */
+
     private void checkBudgetPeriodEnd(UUID budgetId) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new IllegalArgumentException("Budget not found"));
@@ -104,9 +95,7 @@ public class BudgetEvaluationService {
         }
     }
 
-    /**
-     * Create a summary when a budget period ends
-     */
+
     private void createBudgetCompletionSummary(UUID budgetId) {
         try {
             var summary = budgetManagementService.getBudgetSummary(budgetId);
@@ -122,9 +111,7 @@ public class BudgetEvaluationService {
         }
     }
 
-    /**
-     * Evaluate budgets that are approaching their end date (within specified days)
-     */
+
     public void evaluateBudgetsApproachingEnd(int daysThreshold) {
         log.info("Evaluating budgets approaching end date (within {} days)", daysThreshold);
         
@@ -155,23 +142,21 @@ public class BudgetEvaluationService {
                 approachingEndBudgets.size());
     }
 
-    /**
-     * Check if budget is approaching warning threshold (e.g., 80% of limit)
-     */
+
     private void checkBudgetWarningThreshold(UUID budgetId) {
         try {
             var summary = budgetManagementService.getBudgetSummary(budgetId);
             
 
-            summary.getCategories().forEach(budgetCategory -> {
-                if (budgetCategory.getLimitAmount().compareTo(BigDecimal.ZERO) > 0) {
-                    double percentageUsed = budgetCategory.getSpentAmount()
-                            .divide(budgetCategory.getLimitAmount(), 4, java.math.RoundingMode.HALF_UP)
+            summary.getCategorySummaries().forEach(categorySummary -> {
+                if (categorySummary.getLimitAmount().compareTo(BigDecimal.ZERO) > 0) {
+                    double percentageUsed = categorySummary.getSpentAmount()
+                            .divide(categorySummary.getLimitAmount(), 4, java.math.RoundingMode.HALF_UP)
                             .doubleValue();
                     
                     if (percentageUsed >= 0.8 && percentageUsed < 1.0) {
                         log.info("Budget category {} is approaching limit: {:.1f}% used", 
-                                budgetCategory.getCategory().getName(), percentageUsed * 100);
+                                categorySummary.getCategoryName(), percentageUsed * 100);
                     }
                 }
             });
@@ -181,9 +166,6 @@ public class BudgetEvaluationService {
         }
     }
 
-    /**
-     * Get budgets that need immediate attention (exceeded limits or approaching end)
-     */
     public List<Budget> getBudgetsNeedingAttention(UUID userId) {
         List<Budget> activeBudgets = budgetRepository.findByUserId(userId).stream()
                 .filter(budget -> budget.getStatus() == BudgetStatus.ACTIVE)
@@ -195,11 +177,11 @@ public class BudgetEvaluationService {
                         var summary = budgetManagementService.getBudgetSummary(budget.getId());
                         
 
-                        boolean needsAttention = summary.getCategories().stream()
-                                .anyMatch(bc -> {
-                                    if (bc.getLimitAmount().compareTo(BigDecimal.ZERO) > 0) {
-                                        double percentageUsed = bc.getSpentAmount()
-                                                .divide(bc.getLimitAmount(), 4, java.math.RoundingMode.HALF_UP)
+                        boolean needsAttention = summary.getCategorySummaries().stream()
+                                .anyMatch(cs -> {
+                                    if (cs.getLimitAmount().compareTo(BigDecimal.ZERO) > 0) {
+                                        double percentageUsed = cs.getSpentAmount()
+                                                .divide(cs.getLimitAmount(), 4, java.math.RoundingMode.HALF_UP)
                                                 .doubleValue();
                                         return percentageUsed >= 0.8;
                                     }

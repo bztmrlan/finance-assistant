@@ -2,17 +2,18 @@ package com.github.bztmrlan.financeassistant.controller;
 
 import com.github.bztmrlan.financeassistant.dto.TransactionUploadResponse;
 import com.github.bztmrlan.financeassistant.model.User;
+import com.github.bztmrlan.financeassistant.repository.UserRepository;
 import com.github.bztmrlan.financeassistant.service.TransactionUploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/transactions/upload")
@@ -21,17 +22,17 @@ import java.util.List;
 public class TransactionUploadController {
 
     private final TransactionUploadService transactionUploadService;
+    private final UserRepository userRepository;
 
-    /**
-     * Upload transactions from CSV or Excel file
-     */
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TransactionUploadResponse> uploadTransactions(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "currency", defaultValue = "USD") String currency,
             @RequestParam(value = "autoCategorize", defaultValue = "true") boolean autoCategorize,
             @RequestParam(value = "skipDuplicates", defaultValue = "true") boolean skipDuplicates,
-            @RequestParam(value = "dateFormat", defaultValue = "yyyy-MM-dd") String dateFormat) {
+            @RequestParam(value = "dateFormat", defaultValue = "yyyy-MM-dd") String dateFormat,
+            Authentication authentication) {
         
         try {
             if (file.isEmpty()) {
@@ -65,8 +66,7 @@ public class TransactionUploadController {
                 );
             }
 
-
-            User user = getAuthenticatedUser();
+            User user = getAuthenticatedUser(authentication);
             if (user == null) {
                 return ResponseEntity.status(401).body(
                     TransactionUploadResponse.builder()
@@ -110,55 +110,55 @@ public class TransactionUploadController {
         }
     }
 
-    /**
-     * Get upload status and statistics
-     */
+
     @GetMapping("/status")
     public ResponseEntity<String> getUploadStatus() {
         return ResponseEntity.ok("Transaction upload service is running");
     }
 
-    /**
-     * Get supported file formats
-     */
+
     @GetMapping("/formats")
     public ResponseEntity<String[]> getSupportedFormats() {
         String[] formats = {".csv", ".xlsx", ".xls"};
         return ResponseEntity.ok(formats);
     }
 
-    /**
-     * Get expected CSV/Excel column structure
-     */
-    @GetMapping("/template")
-    public ResponseEntity<String> getTemplate() {
-        String template = """
-            Expected CSV/Excel format:
-            
-            Column 1: Date (format: yyyy-MM-dd)
-            Column 2: Amount (positive for income, negative for expenses)
-            Column 3: Type (optional: purchase, transfer, income, etc.)
-            Column 4: Description (optional: transaction description)
-            Column 5: Category (optional: pre-defined category)
-            
-            Example:
-            Date,Amount,Type,Description,Category
-            2024-01-15,-25.50,purchase,Starbucks Coffee,Food & Dining
-            2024-01-16,1200.00,income,Salary Payment,Income
-            2024-01-17,-45.00,transfer,ATM Withdrawal,Transfer
-            """;
-        
-        return ResponseEntity.ok(template);
-    }
 
-    /**
-     * Helper method to get authenticated user
-     */
-    private User getAuthenticatedUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof User) {
-            return (User) authentication.getPrincipal();
+    private User getAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return null;
         }
+        
+        Object principal = authentication.getPrincipal();
+        UUID userId = null;
+        
+
+        if (principal instanceof com.github.bztmrlan.financeassistant.security.CustomUserDetailsService.CustomUserDetails) {
+            userId = ((com.github.bztmrlan.financeassistant.security.CustomUserDetailsService.CustomUserDetails) principal).getUserId();
+        }
+
+        else if (principal instanceof String) {
+            try {
+                userId = UUID.fromString((String) principal);
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid UUID format in authentication principal: {}", principal);
+                return null;
+            }
+        }
+
+        else if (principal instanceof UUID) {
+            userId = (UUID) principal;
+        }
+        else {
+            log.error("Unsupported authentication principal type: {}", 
+                principal.getClass().getSimpleName());
+            return null;
+        }
+        
+        if (userId != null) {
+            return userRepository.findById(userId).orElse(null);
+        }
+        
         return null;
     }
 } 

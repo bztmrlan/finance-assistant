@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Engine - Finance Assistant</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .rule-engine-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .nav-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        
+        .nav-btn:hover {
+            background: #0056b3;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+        }
+        
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        
+        .rule-engine-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .rule-engine-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .rule-engine-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .coming-soon {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .coming-soon i {
+            font-size: 4rem;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        
+        .coming-soon h2 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .coming-soon p {
+            color: #6c757d;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="rule-engine-container">
+        <div class="navigation">
+            <div>
+                <button onclick="window.location.href='dashboard.html'" class="nav-btn">Dashboard</button>
+                <button onclick="window.location.href='budget-management.html'" class="nav-btn">Budgets</button>
+                <button onclick="window.location.href='goal-management.html'" class="nav-btn">Goals</button>
+                <button onclick="window.location.href='transaction-upload.html'" class="nav-btn">Upload</button>
+                <button onclick="window.location.href='transaction-management.html'" class="nav-btn">Transactions</button>
+                <button onclick="window.location.href='insight-service.html'" class="nav-btn">AI Insights</button>
+            </div>
+            <button onclick="logout()" class="logout-btn">Logout</button>
+        </div>
+
+        <div class="rule-engine-header">
+            <h1><i class="fas fa-robot"></i> Rule Engine</h1>
+            <p>Automated financial rules and alerts system</p>
+        </div>
+
+        <div class="rule-engine-content">
+            <div class="coming-soon">
+                <i class="fas fa-tools"></i>
+                <h2>Coming Soon!</h2>
+                <p>The Rule Engine feature is currently under development.</p>
+                <p>This will allow you to create automated financial rules, alerts, and automated actions based on your spending patterns and financial goals.</p>
+                <p>Check back soon for updates!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        // Simple logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            window.location.href = '../index.html';
+        }
+        
+        // Check authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../index.html';
+            }
+        });
+    </script>
+</body>
+</html> 

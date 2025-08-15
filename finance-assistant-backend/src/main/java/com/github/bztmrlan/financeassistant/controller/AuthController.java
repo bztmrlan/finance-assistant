@@ -15,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -68,6 +67,31 @@ public class AuthController {
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok("Auth service is running");
+    }
+
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyToken(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Invalid token format");
+            }
+            
+            String token = authHeader.substring(7);
+            String username = jwtUtil.extractUsername(token);
+            
+            if (username == null) {
+                return ResponseEntity.status(401).body("Invalid token");
+            }
+            
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            if (jwtUtil.validateToken(token, userDetails)) {
+                return ResponseEntity.ok("Token is valid");
+            } else {
+                return ResponseEntity.status(401).body("Token is invalid or expired");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body("Token verification failed");
+        }
     }
 
     @Data

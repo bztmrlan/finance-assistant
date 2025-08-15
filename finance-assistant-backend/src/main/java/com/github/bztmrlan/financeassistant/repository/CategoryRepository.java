@@ -6,13 +6,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, UUID> {
-    List<Category> findByType(CategoryType type);
-    
     List<Category> findByUserId(UUID userId);
     
-    java.util.Optional<Category> findByUserIdAndNameIgnoreCase(UUID userId, String name);
+    List<Category> findByUserIdAndType(UUID userId, CategoryType type);
+    
+    Optional<Category> findByIdAndUserId(UUID id, UUID userId);
+    
+    Optional<Category> findByNameAndUserId(String name, UUID userId);
+    
+    boolean existsByNameAndUserId(String name, UUID userId);
+
 }

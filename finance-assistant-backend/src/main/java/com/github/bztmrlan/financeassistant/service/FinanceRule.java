@@ -5,10 +5,7 @@ import lombok.Getter;
 import org.jeasy.rules.annotation.Action;
 import org.jeasy.rules.annotation.Condition;
 
-/**
- * Easy Rules implementation for finance rules
- * This class wraps our domain Rule entity and provides Easy Rules integration
- */
+
 @org.jeasy.rules.annotation.Rule(name = "FinanceRule", description = "Evaluates financial spending rules")
 public class FinanceRule {
 

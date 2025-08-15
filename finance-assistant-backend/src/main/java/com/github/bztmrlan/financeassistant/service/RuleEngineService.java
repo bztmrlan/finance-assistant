@@ -26,10 +26,7 @@ public class RuleEngineService {
     private final TransactionRepository transactionRepository;
     private final AlertRepository alertRepository;
 
-    /**
-     * Evaluates all active rules for a user and creates alerts for violations
-     * @param userId The user ID to evaluate rules for
-     */
+
     public void evaluateRulesForUser(UUID userId) {
         log.info("Evaluating rules for user: {}", userId);
         
@@ -40,10 +37,7 @@ public class RuleEngineService {
         }
     }
 
-    /**
-     * Evaluates a specific rule and creates an alert if violated
-     * @param rule The rule to evaluate
-     */
+
     public void evaluateRule(Rule rule) {
         log.debug("Evaluating rule: {}", rule.getName());
         
@@ -61,21 +55,53 @@ public class RuleEngineService {
         }
     }
 
-    /**
-     * Evaluates rules when a new transaction is added
-     * @param transaction The new transaction
-     */
+
     public void evaluateRulesForTransaction(Transaction transaction) {
         log.debug("Evaluating rules for new transaction: {}", transaction.getId());
-        
-        List<Rule> relevantRules = ruleRepository.findByUserIdAndActiveTrueAndCategoryIdOrUserIdAndActiveTrueAndCategoryIdIsNull(
-                transaction.getUser().getId(), 
-                transaction.getCategory() != null ? transaction.getCategory().getId() : null
-        );
+
+        List<Rule> relevantRules = ruleRepository.findByUserIdAndActiveTrue(transaction.getUser().getId());
         
         for (Rule rule : relevantRules) {
-            evaluateRule(rule);
+            if (rule.getCategory() == null || 
+                (transaction.getCategory() != null && rule.getCategory().getId().equals(transaction.getCategory().getId()))) {
+
+                if (evaluateRuleConditions(rule, transaction)) {
+                    log.info("Rule '{}' conditions met for transaction: {}", rule.getName(), transaction.getId());
+                    executeRuleActions(rule, transaction);
+                }
+            }
         }
+    }
+
+
+    private boolean evaluateRuleConditions(Rule rule, Transaction transaction) {
+        return switch (rule.getConditionType()) {
+            case GREATER_THAN -> transaction.getAmount().compareTo(rule.getThreshold()) > 0;
+            case LESS_THAN -> transaction.getAmount().compareTo(rule.getThreshold()) < 0;
+            case EQUAL_TO -> transaction.getAmount().compareTo(rule.getThreshold()) == 0;
+        };
+    }
+
+
+    private void executeRuleActions(Rule rule, Transaction transaction) {
+        String message = String.format(
+            "Rule '%s' triggered for transaction: %s (Amount: %s)",
+            rule.getName(),
+            transaction.getDescription(),
+            transaction.getAmount()
+        );
+        
+        Alert alert = Alert.builder()
+                .user(rule.getUser())
+                .sourceType(SourceType.RULE)
+                .sourceId(rule.getId())
+                .message(message)
+                .read(false)
+                .createdAt(Instant.now())
+                .build();
+        
+        alertRepository.save(alert);
+        log.info("Alert created for rule trigger: {}", rule.getName());
     }
 
     private List<Transaction> getTransactionsForRule(Rule rule) {
@@ -152,13 +178,8 @@ public class RuleEngineService {
         );
     }
 
-    /**
-     * Uses Easy Rules engine for more complex rule evaluation
-     * This method can be extended for more sophisticated rule logic
-     */
+
     public void evaluateRulesWithEasyRules(UUID userId) {
-        // For now, just delegate to the simple evaluation
-        // TODO: Implement Easy Rules integration
         evaluateRulesForUser(userId);
     }
 } 

@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,145 +21,175 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CategoryRepositoryTest {
 
     @Autowired
-    private CategoryRepository categoryRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private TestEntityManager entityManager;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
     private User testUser;
-    private Category expenseCategory;
-    private Category incomeCategory;
-    private Category transferCategory;
+    private User anotherUser;
 
     @BeforeEach
-    void setup() {
-        // Create a test user
+    void setUp() {
         testUser = User.builder()
-                .name("Test User")
                 .email("test@example.com")
-                .password("password")
+                .password("password123")
+                .name("Test User")
                 .createdAt(Instant.now())
                 .build();
-        testUser = userRepository.save(testUser);
+        testUser = entityManager.persistAndFlush(testUser);
 
-        expenseCategory = Category.builder()
-                .name("Groceries")
+        anotherUser = User.builder()
+                .email("another@example.com")
+                .password("password123")
+                .name("Another User")
+                .createdAt(Instant.now())
+                .build();
+        anotherUser = entityManager.persistAndFlush(anotherUser);
+    }
+
+    @Test
+    @DisplayName("Should find categories by user ID")
+    void shouldFindCategoriesByUserId() {
+
+        Category category1 = Category.builder()
+                .name("Food")
                 .type(CategoryType.EXPENSE)
                 .user(testUser)
+                .createdAt(LocalDateTime.now())
                 .build();
+        entityManager.persistAndFlush(category1);
 
-        incomeCategory = Category.builder()
+        Category category2 = Category.builder()
+                .name("Transport")
+                .type(CategoryType.EXPENSE)
+                .user(testUser)
+                .createdAt(LocalDateTime.now())
+                .build();
+        entityManager.persistAndFlush(category2);
+
+        Category category3 = Category.builder()
+                .name("Salary")
+                .type(CategoryType.INCOME)
+                .user(anotherUser)
+                .createdAt(LocalDateTime.now())
+                .build();
+        entityManager.persistAndFlush(category3);
+
+
+        List<Category> userCategories = categoryRepository.findByUserId(testUser.getId());
+
+
+        assertThat(userCategories).hasSize(2);
+        assertThat(userCategories).extracting("name").containsExactlyInAnyOrder("Food", "Transport");
+    }
+
+    @Test
+    @DisplayName("Should find categories by user ID and type")
+    void shouldFindCategoriesByUserIdAndType() {
+
+        Category expenseCategory = Category.builder()
+                .name("Food")
+                .type(CategoryType.EXPENSE)
+                .user(testUser)
+                .createdAt(LocalDateTime.now())
+                .build();
+        entityManager.persistAndFlush(expenseCategory);
+
+        Category incomeCategory = Category.builder()
                 .name("Salary")
                 .type(CategoryType.INCOME)
                 .user(testUser)
+                .createdAt(LocalDateTime.now())
                 .build();
+        entityManager.persistAndFlush(incomeCategory);
 
-        transferCategory = Category.builder()
-                .name("Bank Transfer")
-                .type(CategoryType.TRANSFER)
-                .user(testUser)
-                .build();
-    }
 
-    @Test
-    @DisplayName("Should save and retrieve category")
-    void testSaveAndRetrieveCategory() {
-        Category saved = categoryRepository.save(expenseCategory);
-        
-        Optional<Category> retrieved = categoryRepository.findById(saved.getId());
-        
-        assertThat(retrieved).isPresent();
-        assertThat(retrieved.get().getName()).isEqualTo("Groceries");
-        assertThat(retrieved.get().getType()).isEqualTo(CategoryType.EXPENSE);
-    }
+        List<Category> expenseCategories = categoryRepository.findByUserIdAndType(testUser.getId(), CategoryType.EXPENSE);
+        List<Category> incomeCategories = categoryRepository.findByUserIdAndType(testUser.getId(), CategoryType.INCOME);
 
-    @Test
-    @DisplayName("Should find categories by type")
-    void testFindByType() {
-        categoryRepository.save(expenseCategory);
-        categoryRepository.save(incomeCategory);
-        categoryRepository.save(transferCategory);
-
-        List<Category> expenseCategories = categoryRepository.findByType(CategoryType.EXPENSE);
-        List<Category> incomeCategories = categoryRepository.findByType(CategoryType.INCOME);
-        List<Category> transferCategories = categoryRepository.findByType(CategoryType.TRANSFER);
 
         assertThat(expenseCategories).hasSize(1);
-        assertThat(expenseCategories.get(0).getName()).isEqualTo("Groceries");
-        
+        assertThat(expenseCategories.get(0).getName()).isEqualTo("Food");
         assertThat(incomeCategories).hasSize(1);
         assertThat(incomeCategories.get(0).getName()).isEqualTo("Salary");
-        
-        assertThat(transferCategories).hasSize(1);
-        assertThat(transferCategories.get(0).getName()).isEqualTo("Bank Transfer");
     }
 
     @Test
-    @DisplayName("Should update category")
-    void testUpdateCategory() {
-        Category saved = categoryRepository.save(expenseCategory);
-        
-        saved.setName("Updated Groceries");
-        Category updated = categoryRepository.save(saved);
-        
-        Optional<Category> retrieved = categoryRepository.findById(updated.getId());
-        assertThat(retrieved).isPresent();
-        assertThat(retrieved.get().getName()).isEqualTo("Updated Groceries");
+    @DisplayName("Should find category by ID and user ID")
+    void shouldFindCategoryByIdAndUserId() {
+
+        Category category = Category.builder()
+                .name("Food")
+                .type(CategoryType.EXPENSE)
+                .user(testUser)
+                .createdAt(LocalDateTime.now())
+                .build();
+        category = entityManager.persistAndFlush(category);
+
+
+        Optional<Category> found = categoryRepository.findByIdAndUserId(category.getId(), testUser.getId());
+
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getName()).isEqualTo("Food");
     }
 
     @Test
-    @DisplayName("Should delete category")
-    void testDeleteCategory() {
-        Category saved = categoryRepository.save(expenseCategory);
-        
-        categoryRepository.deleteById(saved.getId());
-        
-        Optional<Category> retrieved = categoryRepository.findById(saved.getId());
-        assertThat(retrieved).isEmpty();
+    @DisplayName("Should not find category by ID and different user ID")
+    void shouldNotFindCategoryByIdAndDifferentUserId() {
+
+        Category category = Category.builder()
+                .name("Food")
+                .type(CategoryType.EXPENSE)
+                .user(testUser)
+                .createdAt(LocalDateTime.now())
+                .build();
+        category = entityManager.persistAndFlush(category);
+
+
+        Optional<Category> found = categoryRepository.findByIdAndUserId(category.getId(), anotherUser.getId());
+
+
+        assertThat(found).isEmpty();
     }
 
     @Test
-    @DisplayName("Should find all categories")
-    void testFindAllCategories() {
-        categoryRepository.save(expenseCategory);
-        categoryRepository.save(incomeCategory);
-        categoryRepository.save(transferCategory);
+    @DisplayName("Should find category by name and user ID")
+    void shouldFindCategoryByNameAndUserId() {
 
-        List<Category> allCategories = categoryRepository.findAll();
+        Category category = Category.builder()
+                .name("Food")
+                .type(CategoryType.EXPENSE)
+                .user(testUser)
+                .createdAt(LocalDateTime.now())
+                .build();
+        entityManager.persistAndFlush(category);
 
-        assertThat(allCategories).hasSize(3);
-        assertThat(allCategories).extracting("name")
-                .containsExactlyInAnyOrder("Groceries", "Salary", "Bank Transfer");
+
+        Optional<Category> found = categoryRepository.findByNameAndUserId("Food", testUser.getId());
+
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getName()).isEqualTo("Food");
     }
 
     @Test
-    @DisplayName("Should handle empty repository")
-    void testEmptyRepository() {
-        List<Category> expenseCategories = categoryRepository.findByType(CategoryType.EXPENSE);
-        List<Category> allCategories = categoryRepository.findAll();
+    @DisplayName("Should check if category exists by name and user ID")
+    void shouldCheckIfCategoryExistsByNameAndUserId() {
 
-        assertThat(expenseCategories).isEmpty();
-        assertThat(allCategories).isEmpty();
-    }
+        Category category = Category.builder()
+                .name("Food")
+                .type(CategoryType.EXPENSE)
+                .user(testUser)
+                .createdAt(LocalDateTime.now())
+                .build();
+        entityManager.persistAndFlush(category);
 
-    @Test
-    @DisplayName("Should find multiple categories of same type")
-    void testFindMultipleCategoriesOfSameType() {
-        Category groceries = Category.builder().name("Groceries").type(CategoryType.EXPENSE).user(testUser).build();
-        Category dining = Category.builder().name("Dining").type(CategoryType.EXPENSE).user(testUser).build();
-        Category transportation = Category.builder().name("Transportation").type(CategoryType.EXPENSE).user(testUser).build();
+        boolean exists = categoryRepository.existsByNameAndUserId("Food", testUser.getId());
+        boolean notExists = categoryRepository.existsByNameAndUserId("Food", anotherUser.getId());
 
-        categoryRepository.save(groceries);
-        categoryRepository.save(dining);
-        categoryRepository.save(transportation);
-
-        List<Category> expenseCategories = categoryRepository.findByType(CategoryType.EXPENSE);
-
-        assertThat(expenseCategories).hasSize(3);
-        assertThat(expenseCategories).extracting("name")
-                .containsExactlyInAnyOrder("Groceries", "Dining", "Transportation");
+        assertThat(exists).isTrue();
+        assertThat(notExists).isFalse();
     }
 } 

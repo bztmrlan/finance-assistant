@@ -2,6 +2,7 @@ package com.github.bztmrlan.financeassistant.model;
 
 import com.github.bztmrlan.financeassistant.enums.CondititonType;
 import com.github.bztmrlan.financeassistant.enums.TimePeriod;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,10 +27,12 @@ public class Rule {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @JsonIgnore
     private Category category;
 
     @Column(nullable = false)

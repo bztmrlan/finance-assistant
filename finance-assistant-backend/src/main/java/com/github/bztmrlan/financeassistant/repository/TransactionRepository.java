@@ -34,4 +34,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     List<Transaction> findByUserIdAndDateAndAmountAndDescription(
             UUID userId, LocalDate date, BigDecimal amount, String description);
+
+
+    List<Transaction> findByUserIdOrderByDateDesc(UUID userId);
+
+
+    Transaction findByIdAndUserId(UUID id, UUID userId);
+
 }

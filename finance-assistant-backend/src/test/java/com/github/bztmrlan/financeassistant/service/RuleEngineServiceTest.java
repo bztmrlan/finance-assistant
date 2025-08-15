@@ -1,7 +1,6 @@
 package com.github.bztmrlan.financeassistant.service;
 
 import com.github.bztmrlan.financeassistant.enums.CondititonType;
-import com.github.bztmrlan.financeassistant.enums.SourceType;
 import com.github.bztmrlan.financeassistant.enums.TimePeriod;
 import com.github.bztmrlan.financeassistant.model.Alert;
 import com.github.bztmrlan.financeassistant.model.Category;
@@ -77,7 +76,7 @@ class RuleEngineServiceTest {
                 .user(testUser)
                 .category(testCategory)
                 .date(LocalDate.now())
-                .amount(new BigDecimal("100.00"))
+                .amount(new BigDecimal("600.00"))
                 .currency("USD")
                 .description("Grocery shopping")
                 .build();
@@ -85,7 +84,7 @@ class RuleEngineServiceTest {
 
     @Test
     void testEvaluateRulesForUser_NoViolation() {
-        // Given
+
         List<Rule> rules = Arrays.asList(testRule);
         List<Transaction> transactions = Arrays.asList(
                 Transaction.builder()
@@ -98,16 +97,16 @@ class RuleEngineServiceTest {
                 any(), any(), any(), any()
         )).thenReturn(transactions);
 
-        // When
+
         ruleEngineService.evaluateRulesForUser(testUser.getId());
 
-        // Then
+
         verify(alertRepository, never()).save(any());
     }
 
     @Test
     void testEvaluateRulesForUser_WithViolation() {
-        // Given
+
         List<Rule> rules = Arrays.asList(testRule);
         List<Transaction> transactions = Arrays.asList(
                 Transaction.builder()
@@ -121,41 +120,28 @@ class RuleEngineServiceTest {
         )).thenReturn(transactions);
         when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
 
-        // When
+
         ruleEngineService.evaluateRulesForUser(testUser.getId());
 
-        // Then
+
         verify(alertRepository, times(1)).save(any(Alert.class));
     }
 
     @Test
     void testEvaluateRulesForTransaction() {
-        // Given
-        List<Rule> rules = Arrays.asList(testRule);
-        List<Transaction> transactions = Arrays.asList(
-                Transaction.builder()
-                        .amount(new BigDecimal("600.00"))
-                        .build()
-        );
 
-        when(ruleRepository.findByUserIdAndActiveTrueAndCategoryIdOrUserIdAndActiveTrueAndCategoryIdIsNull(
-                any(), any()
-        )).thenReturn(rules);
-        when(transactionRepository.findByUserIdAndCategoryIdAndDateBetween(
-                any(), any(), any(), any()
-        )).thenReturn(transactions);
+        List<Rule> rules = Arrays.asList(testRule);
+        
+        when(ruleRepository.findByUserIdAndActiveTrue(testUser.getId())).thenReturn(rules);
         when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
 
-        // When
         ruleEngineService.evaluateRulesForTransaction(testTransaction);
 
-        // Then
         verify(alertRepository, times(1)).save(any(Alert.class));
     }
 
     @Test
     void testEvaluateRulesWithEasyRules() {
-        // Given
         List<Rule> rules = Arrays.asList(testRule);
         List<Transaction> transactions = Arrays.asList(
                 Transaction.builder()
@@ -168,17 +154,13 @@ class RuleEngineServiceTest {
                 any(), any(), any(), any()
         )).thenReturn(transactions);
         when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
-
-        // When
         ruleEngineService.evaluateRulesWithEasyRules(testUser.getId());
-
-        // Then
         verify(alertRepository, times(1)).save(any(Alert.class));
     }
 
     @Test
     void testRuleWithLessThanCondition() {
-        // Given
+
         Rule lessThanRule = Rule.builder()
                 .id(UUID.randomUUID())
                 .user(testUser)
@@ -203,16 +185,13 @@ class RuleEngineServiceTest {
         )).thenReturn(transactions);
         when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
 
-        // When
         ruleEngineService.evaluateRulesForUser(testUser.getId());
 
-        // Then
         verify(alertRepository, times(1)).save(any(Alert.class));
     }
 
     @Test
     void testRuleWithEqualCondition() {
-        // Given
         Rule equalRule = Rule.builder()
                 .id(UUID.randomUUID())
                 .user(testUser)
@@ -237,10 +216,8 @@ class RuleEngineServiceTest {
         )).thenReturn(transactions);
         when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
 
-        // When
         ruleEngineService.evaluateRulesForUser(testUser.getId());
 
-        // Then
         verify(alertRepository, times(1)).save(any(Alert.class));
     }
 } 

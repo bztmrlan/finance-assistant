@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Assistant - Welcome</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .welcome-container {
+            max-width: 800px;
+            margin: 100px auto;
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .welcome-title {
+            font-size: 3rem;
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1.2rem;
+            color: #718096;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        
+        .directory-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .directory-link {
+            display: block;
+            padding: 20px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #2d3748;
+            transition: all 0.3s ease;
+        }
+        
+        .directory-link:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+            transform: translateY(-2px);
+        }
+        
+        .directory-link h3 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+            font-size: 1.3rem;
+        }
+        
+        .directory-link p {
+            margin: 0;
+            color: #718096;
+            font-size: 0.9rem;
+        }
+        
+        .main-actions {
+            margin-top: 40px;
+        }
+        
+        .main-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            margin: 0 10px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .main-btn:hover {
+            background: #5a67d8;
+        }
+        
+        .main-btn.secondary {
+            background: #718096;
+        }
+        
+        .main-btn.secondary:hover {
+            background: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <h1 class="welcome-title">🏠 Finance Assistant</h1>
+        <p class="welcome-subtitle">
+            Welcome to your AI-powered financial management platform. 
+            Organize your finances, track spending, set goals, and get intelligent insights.
+        </p>
+        
+        <div class="main-actions">
+            <a href="html/auth.html" class="main-btn">
+                <i class="fas fa-sign-in-alt"></i> Login / Register
+            </a>
+            <a href="html/dashboard.html" class="main-btn secondary">
+                <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+            </a>
+        </div>
+        
+        <div class="directory-links">
+            <a href="html/" class="directory-link">
+                <h3>📄 Main Pages</h3>
+                <p>Core application pages including dashboard, budget management, goals, and transactions</p>
+            </a>
+            
+            <a href="js/" class="directory-link">
+                <h3>⚙️ JavaScript</h3>
+                <p>Application logic, API services, and interactive functionality</p>
+            </a>
+            
+            <a href="css/" class="directory-link">
+                <h3>🎨 Styles</h3>
+                <p>CSS files for consistent design and responsive layout</p>
+            </a>
+            
+            <a href="docs/" class="directory-link">
+                <h3>📚 Documentation</h3>
+                <p>README files and technical documentation for the project</p>
+            </a>
+            
+            <a href="tests/" class="directory-link">
+                <h3>🧪 Testing</h3>
+                <p>Test pages and debugging tools for development</p>
+            </a>
+            
+            <a href="assets/" class="directory-link">
+                <h3>📁 Assets</h3>
+                <p>Additional files, scripts, and resources</p>
+            </a>
+        </div>
+    </div>
+</body>
+</html> 

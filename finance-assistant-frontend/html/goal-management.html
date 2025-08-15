@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Management - Finance Assistant</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .goal-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #3182ce;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .goal-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .goal-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #2d3748;
+            margin: 0;
+        }
+        
+        .goal-category {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        .goal-progress {
+            margin: 15px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #38a169);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ed8936, #dd6b20);
+        }
+        
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #f56565, #e53e3e);
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #718096;
+        }
+        
+        .goal-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .detail-item {
+            text-align: center;
+        }
+        
+        .detail-label {
+            font-size: 0.8em;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .goal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .action-btn.primary {
+            background: #3182ce;
+            color: white;
+        }
+        
+        .action-btn.primary:hover {
+            background: #2c5aa0;
+        }
+        
+        .action-btn.success {
+            background: #38a169;
+            color: white;
+        }
+        
+        .action-btn.success:hover {
+            background: #2f855a;
+        }
+        
+        .action-btn.warning {
+            background: #ed8936;
+            color: white;
+        }
+        
+        .action-btn.warning:hover {
+            background: #dd6b20;
+        }
+        
+        .action-btn.danger {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .action-btn.danger:hover {
+            background: #c53030;
+        }
+        
+        .action-btn.secondary {
+            background: #718096;
+            color: white;
+        }
+        
+        .action-btn.secondary:hover {
+            background: #4a5568;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .action-buttons .action-btn {
+            margin: 0;
+        }
+        
+        .goal-form {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #3182ce;
+        }
+        
+        .form-select {
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .form-select:focus {
+            outline: none;
+            border-color: #3182ce;
+        }
+        
+        .form-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .completed-goal {
+            border-left-color: #48bb78;
+            opacity: 0.8;
+        }
+        
+        .completed-goal .goal-title {
+            text-decoration: line-through;
+            color: #718096;
+        }
+        
+        .overdue-goal {
+            border-left-color: #e53e3e;
+        }
+        
+        .overdue-goal .goal-title {
+            color: #e53e3e;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+        
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            color: #cbd5e0;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #4a5568;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+        
+        .loading i {
+            font-size: 2em;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #718096;
+        }
+        
+        .close:hover {
+            color: #2d3748;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            
+            .nav {
+                justify-content: center;
+                margin-top: 15px;
+            }
+            
+            .navigation-buttons {
+                justify-content: center;
+                gap: 10px;
+            }
+            
+            .nav-button {
+                min-width: 120px;
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+            
+            .goal-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .goal-actions {
+                flex-wrap: wrap;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Navigation Buttons */
+        .navigation-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .nav-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 140px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-button:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        
+        .nav-button.secondary {
+            background: #718096;
+        }
+        
+        .nav-button.secondary:hover {
+            background: #4a5568;
+        }
+        
+        /* Logout Button */
+        .logout-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+        }
+        
+        /* Page Header Styles */
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .page-header p {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <div class="navigation-buttons">
+            <a href="dashboard.html" class="nav-button">🏠 Dashboard</a>
+            <a href="budget-management.html" class="nav-button">💰 Budget Management</a>
+            <a href="transaction-upload.html" class="nav-button">📤 Transaction Upload</a>
+            <a href="insight-service.html" class="nav-button">🧠 AI Insights</a>
+        </div>
+
+        <div class="page-header">
+            <div>
+                <h1><i class="fas fa-bullseye"></i> Goal Management</h1>
+                <p>Set financial goals, track progress, and get personalized recommendations</p>
+            </div>
+        </div>
+
+            <!-- Statistics Section -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: #3182ce;">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="stat-value" id="totalGoals">-</div>
+                    <div class="stat-label">Total Goals</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: #48bb78;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-value" id="completedGoals">-</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: #ed8936;">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-value" id="activeGoals">-</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: #e53e3e;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-value" id="overdueGoals">-</div>
+                    <div class="stat-label">Overdue</div>
+                </div>
+            </div>
+
+            <!-- Goal Creation Form -->
+            <div class="goal-form">
+                <h2><i class="fas fa-plus-circle"></i> Create New Goal</h2>
+                <form id="goalForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="goalName" class="form-label">Goal Name</label>
+                            <input type="text" id="goalName" name="name" class="form-input" required 
+                                   placeholder="e.g., Save for Vacation">
+                        </div>
+                        <div class="form-group">
+                            <label for="targetAmount" class="form-label">Target Amount</label>
+                            <input type="number" id="targetAmount" name="targetAmount" class="form-input" 
+                                   step="0.01" min="0" required placeholder="1000.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="targetDate" class="form-label">Target Date</label>
+                            <input type="date" id="targetDate" name="targetDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="categoryId" class="form-label">Category</label>
+                            <select id="categoryId" name="categoryId" class="form-select" required>
+                                <option value="">Select a category</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="currency" class="form-label">Currency</label>
+                            <select id="currency" name="currency" class="form-select" required>
+                                <option value="USD">USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="GBP">GBP (£)</option>
+                                <option value="JPY">JPY (¥)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-buttons">
+                        <button type="button" onclick="resetForm()" class="action-btn secondary">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                        <button type="submit" class="action-btn primary">
+                            <i class="fas fa-save"></i> Create Goal
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Goals List -->
+            <div class="goals-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> Your Goals</h2>
+                    <div class="action-buttons">
+                        <button onclick="calculateGoalProgressFromTransactions()" class="action-btn primary">
+                            <i class="fas fa-calculator"></i> Calculate Progress from Transactions
+                        </button>
+                        <button onclick="evaluateAllGoals()" class="action-btn success">
+                            <i class="fas fa-sync-alt"></i> Evaluate All Goals
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="goalsList">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <p>Loading goals...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Progress Update Modal -->
+    <div id="progressModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeProgressModal()">&times;</span>
+            <h2><i class="fas fa-chart-line"></i> Update Goal Progress</h2>
+            <form id="progressForm">
+                <div class="form-group">
+                    <label for="progressAmount" class="form-label">Amount to Add</label>
+                    <input type="number" id="progressAmount" name="amount" class="form-input" 
+                           step="0.01" min="0" required placeholder="100.00">
+                </div>
+                <div class="form-buttons">
+                    <button type="button" onclick="closeProgressModal()" class="action-btn secondary">
+                        Cancel
+                    </button>
+                    <button type="submit" class="action-btn success">
+                        <i class="fas fa-plus"></i> Update Progress
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Goal Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2><i class="fas fa-edit"></i> Edit Goal</h2>
+            <form id="editForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editGoalName" class="form-label">Goal Name</label>
+                        <input type="text" id="editGoalName" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTargetAmount" class="form-label">Target Amount</label>
+                        <input type="number" id="editTargetAmount" name="targetAmount" class="form-input" 
+                               step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTargetDate" class="form-label">Target Date</label>
+                        <input type="date" id="editTargetDate" name="targetDate" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCategoryId" class="form-label">Category</label>
+                        <select id="editCategoryId" name="categoryId" class="form-select" required>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCurrency" class="form-label">Currency</label>
+                        <select id="editCurrency" name="currency" class="form-select" required>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="JPY">JPY (¥)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" onclick="closeEditModal()" class="action-btn secondary">
+                        Cancel
+                    </button>
+                    <button type="submit" class="action-btn primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/config.js"></script>
+    <script src="../js/api-service.js"></script>
+    <script src="../js/goal-management.js"></script>
+</body>
+</html> 

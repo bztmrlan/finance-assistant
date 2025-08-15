@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Debug - Finance Assistant</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .debug-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .debug-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        
+        .debug-title {
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .debug-info {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .debug-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .debug-button:hover {
+            background: #5a67d8;
+        }
+        
+        .debug-button.danger {
+            background: #f56565;
+        }
+        
+        .debug-button.danger:hover {
+            background: #e53e3e;
+        }
+        
+        .status-good {
+            color: #48bb78;
+            font-weight: 600;
+        }
+        
+        .status-bad {
+            color: #f56565;
+            font-weight: 600;
+        }
+        
+        .status-warning {
+            color: #ed8936;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1><i class="fas fa-bug"></i> Authentication Debug</h1>
+        <p>Use this page to debug authentication issues and test your connection to the backend.</p>
+        
+        <div class="debug-section">
+            <h2 class="debug-title">🔐 Authentication Status</h2>
+            <div id="authStatus" class="debug-info">
+                Checking authentication status...
+            </div>
+            <button class="debug-button" onclick="checkAuthStatus()">🔄 Refresh Status</button>
+            <button class="debug-button" onclick="fixMissingUserName()">🔧 Fix userName</button>
+            <button class="debug-button danger" onclick="clearAuth()">🗑️ Clear Auth</button>
+        </div>
+        
+        <div class="debug-section">
+            <h2 class="debug-title">🌐 Backend Connection</h2>
+            <div id="backendStatus" class="debug-info">
+                Checking backend connection...
+            </div>
+            <button class="debug-button" onclick="checkBackendConnection()">🔄 Test Connection</button>
+        </div>
+        
+        <div class="debug-section">
+            <h2 class="debug-title">🔑 Token Information</h2>
+            <div id="tokenInfo" class="debug-info">
+                Loading token information...
+            </div>
+            <button class="debug-button" onclick="verifyToken()">🔍 Verify Token</button>
+            <button class="debug-button" onclick="refreshToken()">🔄 Refresh Token</button>
+        </div>
+        
+        <div class="debug-section">
+            <h2 class="debug-title">📊 API Test</h2>
+            <div id="apiTest" class="debug-info">
+                Ready to test API endpoints...
+            </div>
+            <button class="debug-button" onclick="testBudgetAPI()">💰 Test Budget API</button>
+            <button class="debug-button" onclick="testCategoryAPI()">🏷️ Test Category API</button>
+        </div>
+        
+        <div class="debug-section">
+            <h2 class="debug-title">🧭 Navigation</h2>
+            <a href="../index.html" class="debug-button">🏠 Welcome Page</a>
+            <a href="auth.html" class="debug-button">🔐 Login/Register</a>
+            <a href="dashboard.html" class="debug-button">📊 Dashboard</a>
+            <a href="budget-management.html" class="debug-button">💰 Budget Management</a>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/api-service.js"></script>
+    <script>
+        let apiService;
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            apiService = new ApiService();
+            checkAuthStatus();
+            checkBackendConnection();
+            updateTokenInfo();
+        });
+        
+        // Check authentication status
+        function checkAuthStatus() {
+            const statusDiv = document.getElementById('authStatus');
+            const token = localStorage.getItem('authToken');
+            const userEmail = localStorage.getItem('userEmail');
+            const userName = localStorage.getItem('userName');
+            
+            if (token && userEmail && userName) {
+                statusDiv.innerHTML = `
+                    <span class="status-good">✅ Authenticated</span><br>
+                    <strong>User:</strong> ${userName}<br>
+                    <strong>Email:</strong> ${userEmail}<br>
+                    <strong>Token:</strong> ${token.substring(0, 20)}...<br>
+                    <strong>Token Length:</strong> ${token.length} characters
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <span class="status-bad">❌ Not Authenticated</span><br>
+                    <strong>Token:</strong> ${token ? 'Present' : 'Missing'}<br>
+                    <strong>User Email:</strong> ${userEmail ? 'Present' : 'Missing'}<br>
+                    <strong>User Name:</strong> ${userName ? 'Present' : 'Missing'}
+                `;
+            }
+        }
+        
+        // Check backend connection
+        async function checkBackendConnection() {
+            const statusDiv = document.getElementById('backendStatus');
+            try {
+                const response = await fetch(`${CONFIG.getBackendUrl()}/auth/health`);
+                if (response.ok) {
+                    statusDiv.innerHTML = `
+                        <span class="status-good">✅ Backend Connected</span><br>
+                        <strong>URL:</strong> ${CONFIG.getBackendUrl()}<br>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}
+                    `;
+                } else {
+                    statusDiv.innerHTML = `
+                        <span class="status-warning">⚠️ Backend Error</span><br>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}<br>
+                        <strong>URL:</strong> ${CONFIG.getBackendUrl()}
+                    `;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <span class="status-bad">❌ Backend Unreachable</span><br>
+                    <strong>Error:</strong> ${error.message}<br>
+                    <strong>URL:</strong> ${CONFIG.getBackendUrl()}
+                `;
+            }
+        }
+        
+        // Update token information
+        function updateTokenInfo() {
+            const infoDiv = document.getElementById('tokenInfo');
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                infoDiv.innerHTML = '<span class="status-bad">❌ No token found</span>';
+                return;
+            }
+            
+            try {
+                // Decode JWT token (basic parsing)
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1]));
+                    const now = Math.floor(Date.now() / 1000);
+                    const isExpired = payload.exp && payload.exp < now;
+                    
+                    infoDiv.innerHTML = `
+                        <strong>Token Type:</strong> JWT<br>
+                        <strong>Issued At:</strong> ${new Date(payload.iat * 1000).toLocaleString()}<br>
+                        <strong>Expires At:</strong> ${payload.exp ? new Date(payload.exp * 1000).toLocaleString() : 'No expiration'}<br>
+                        <strong>Status:</strong> ${isExpired ? '<span class="status-bad">❌ Expired</span>' : '<span class="status-good">✅ Valid</span>'}<br>
+                        <strong>User ID:</strong> ${payload.sub || 'Unknown'}<br>
+                        <strong>Issuer:</strong> ${payload.iss || 'Unknown'}
+                    `;
+                } else {
+                    infoDiv.innerHTML = '<span class="status-warning">⚠️ Invalid token format</span>';
+                }
+            } catch (error) {
+                infoDiv.innerHTML = `
+                    <span class="status-warning">⚠️ Error parsing token</span><br>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+        
+        // Verify token with backend
+        async function verifyToken() {
+            const testDiv = document.getElementById('apiTest');
+            if (!apiService) {
+                testDiv.innerHTML = '<span class="status-bad">❌ API Service not initialized</span>';
+                return;
+            }
+            
+            try {
+                testDiv.innerHTML = '🔍 Verifying token...';
+                const result = await apiService.verifyToken();
+                
+                if (result) {
+                    testDiv.innerHTML = '<span class="status-good">✅ Token verified successfully</span>';
+                } else {
+                    testDiv.innerHTML = '<span class="status-bad">❌ Token verification failed</span>';
+                }
+            } catch (error) {
+                testDiv.innerHTML = `
+                    <span class="status-bad">❌ Token verification error</span><br>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+        
+        // Test budget API
+        async function testBudgetAPI() {
+            const testDiv = document.getElementById('apiTest');
+            if (!apiService) {
+                testDiv.innerHTML = '<span class="status-bad">❌ API Service not initialized</span>';
+                return;
+            }
+            
+            try {
+                testDiv.innerHTML = '💰 Testing budget API...';
+                const budgets = await apiService.getUserBudgets();
+                testDiv.innerHTML = `
+                    <span class="status-good">✅ Budget API working</span><br>
+                    <strong>Budgets found:</strong> ${budgets ? budgets.length : 0}
+                `;
+            } catch (error) {
+                testDiv.innerHTML = `
+                    <span class="status-bad">❌ Budget API error</span><br>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+        
+        // Test category API
+        async function testCategoryAPI() {
+            const testDiv = document.getElementById('apiTest');
+            if (!apiService) {
+                testDiv.innerHTML = '<span class="status-bad">❌ API Service not initialized</span>';
+                return;
+            }
+            
+            try {
+                testDiv.innerHTML = '🏷️ Testing category API...';
+                const categories = await apiService.getUserCategories();
+                testDiv.innerHTML = `
+                    <span class="status-good">✅ Category API working</span><br>
+                    <strong>Categories found:</strong> ${categories ? categories.length : 0}
+                `;
+            } catch (error) {
+                testDiv.innerHTML = `
+                    <span class="status-bad">❌ Category API error</span><br>
+                    <strong>Error:</strong> ${error.message}
+                `;
+            }
+        }
+        
+        // Clear authentication
+        function clearAuth() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            checkAuthStatus();
+            updateTokenInfo();
+            document.getElementById('apiTest').innerHTML = 'Ready to test API endpoints...';
+        }
+        
+        // Fix missing userName
+        function fixMissingUserName() {
+            const token = localStorage.getItem('authToken');
+            const userEmail = localStorage.getItem('userEmail');
+            const userName = localStorage.getItem('userName');
+            
+            if (token && userEmail && !userName) {
+                // Try to extract name from email or set a default
+                const emailName = userEmail.split('@')[0];
+                const defaultName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+                localStorage.setItem('userName', defaultName);
+                console.log('🔧 Fixed missing userName:', defaultName);
+                checkAuthStatus();
+            } else if (!userName) {
+                alert('Please login first to set userName');
+            } else {
+                alert('userName is already set');
+            }
+        }
+        
+        // Refresh token (placeholder for future implementation)
+        function refreshToken() {
+            alert('Token refresh functionality not yet implemented. Please login again.');
+        }
+        
+        // Global function for console debugging
+        window.setUserName = function(name) {
+            if (name && typeof name === 'string') {
+                localStorage.setItem('userName', name);
+                console.log('🔧 userName set to:', name);
+                checkAuthStatus();
+                return true;
+            } else {
+                console.error('🔧 Invalid name provided:', name);
+                return false;
+            }
+        };
+        
+        // Global function to check current auth state
+        window.checkAuth = function() {
+            console.log('🔐 Current auth state:');
+            console.log('  Token:', localStorage.getItem('authToken') ? 'Present' : 'Missing');
+            console.log('  Email:', localStorage.getItem('userEmail') || 'Missing');
+            console.log('  Name:', localStorage.getItem('userName') || 'Missing');
+        };
+    </script>
+</body>
+</html> 

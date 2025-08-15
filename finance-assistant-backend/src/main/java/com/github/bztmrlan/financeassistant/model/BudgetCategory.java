@@ -1,5 +1,6 @@
 package com.github.bztmrlan.financeassistant.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,6 +25,7 @@ public class BudgetCategory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "budget_id", nullable = false)
+    @JsonBackReference("budget-categories")
     private Budget budget;
 
     @ManyToOne(fetch = FetchType.LAZY)

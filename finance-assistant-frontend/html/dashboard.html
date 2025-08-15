@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Assistant - Dashboard</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .dashboard-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+
+        
+        .navigation-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .nav-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .nav-button:hover {
+            background: #5a67d8;
+        }
+        
+        .user-info h2 {
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+        
+        .user-info p {
+            color: #718096;
+            margin: 0;
+        }
+        
+        .logout-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .card-header i {
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+        
+        .card-header h3 {
+            color: #2d3748;
+            margin: 0;
+            font-size: 1.2rem;
+        }
+        
+        .card-content {
+            color: #718096;
+            line-height: 1.6;
+        }
+        
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        
+        .page-header p {
+            font-size: 1.1rem;
+            color: #718096;
+            margin: 0;
+        }
+        
+        .api-status {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .api-status.connected {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .api-status.disconnected {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Navigation -->
+        <div class="navigation-buttons">
+            <a href="transaction-upload.html" class="nav-button">📤 Transaction Upload</a>
+            <a href="budget-management.html" class="nav-button">💰 Budget Management</a>
+            <a href="goal-management.html" class="nav-button">🎯 Goal Management</a>
+            <a href="insight-service.html" class="nav-button">🧠 AI Insights</a>
+        </div>
+
+                    <div class="dashboard-header">
+                <div class="user-info">
+                    <h2 id="userName">Welcome!</h2>
+                    <p id="userEmail">Loading user information...</p>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+
+        <div class="page-header">
+            <div>
+                <h1>🏠 Finance Assistant Dashboard</h1>
+                <p>Your AI-powered financial management platform</p>
+            </div>
+        </div>
+
+        <div class="api-status" id="apiStatus">
+            <h3>Backend Connection Status</h3>
+            <p id="statusText">Checking connection...</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Budget Management</h3>
+                </div>
+                <div class="card-content">
+                    <p>Create and manage budgets, track spending, and get insights into your financial habits.</p>
+                    <a href="budget-management.html" class="submit-btn" style="margin-top: 15px; width: auto; padding: 10px 20px; text-decoration: none; display: inline-block;">
+                        Manage Budgets
+                    </a>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-bullseye"></i>
+                    <h3>Financial Goals</h3>
+                </div>
+                <div class="card-content">
+                    <p>Set financial goals, track progress, and get personalized recommendations to achieve them.</p>
+                    <a href="goal-management.html" class="submit-btn" style="margin-top: 15px; width: auto; padding: 10px 20px; text-decoration: none; display: inline-block;">
+                        Set Goals
+                    </a>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-upload"></i>
+                    <h3>Transaction Upload</h3>
+                </div>
+                <div class="card-content">
+                    <p>Upload your bank statements and transactions for AI-powered categorization and analysis.</p>
+                    <a href="transaction-upload.html" class="submit-btn" style="margin-top: 15px; width: auto; padding: 10px 20px; text-decoration: none; display: inline-block;">
+                        Upload Transactions
+                    </a>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-robot"></i>
+                    <h3>AI Insights</h3>
+                </div>
+                <div class="card-content">
+                    <p>Get intelligent insights about your spending patterns and financial recommendations.</p>
+                    <a href="insight-service.html" class="submit-btn" style="margin-top: 15px; width: auto; padding: 10px 20px; text-decoration: none; display: inline-block;">
+                        View Insights
+                    </a>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-list"></i>
+                    <h3>Transaction Management</h3>
+                </div>
+                <div class="card-content">
+                    <p>View, filter, and edit your transactions. Change categories and manage your financial data.</p>
+                    <a href="transaction-management.html" class="submit-btn" style="margin-top: 15px; width: auto; padding: 10px 20px; text-decoration: none; display: inline-block;">
+                        Manage Transactions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+            <script src="../js/config.js"></script>
+        <script>
+        // Check authentication status
+        function checkAuth() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '../index.html';
+                return;
+            }
+            
+            // Display user information
+            const userName = localStorage.getItem('userName') || 'User';
+            const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
+            
+            document.getElementById('userName').textContent = `Welcome, ${userName}!`;
+            document.getElementById('userEmail').textContent = userEmail;
+            
+            // Check API connection
+            checkApiConnection();
+        }
+        
+        // Check API connection
+        async function checkApiConnection() {
+            try {
+                const response = await fetch(`${CONFIG.getBackendUrl()}/auth/health`);
+                const statusDiv = document.getElementById('apiStatus');
+                const statusText = document.getElementById('statusText');
+                
+                if (response.ok) {
+                    statusDiv.className = 'api-status connected';
+                    statusText.textContent = 'Connected to Finance Assistant Backend';
+                } else {
+                    statusDiv.className = 'api-status disconnected';
+                    statusText.textContent = 'Backend service error';
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('apiStatus');
+                const statusText = document.getElementById('statusText');
+                statusDiv.className = 'api-status disconnected';
+                statusText.textContent = 'Cannot connect to backend service';
+            }
+        }
+        
+
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            window.location.href = '../index.html';
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+</body>
+</html> 

@@ -30,6 +30,10 @@ public class ScheduledGoalEvaluationService {
 
         for (UUID userId : userIds) {
             try {
+
+                goalManagementService.calculateGoalProgressFromTransactions(userId);
+                log.debug("Calculated goal progress from transactions for user: {}", userId);
+
                 goalManagementService.evaluateGoalsForUser(userId);
                 log.debug("Evaluated goals for user: {}", userId);
             } catch (Exception e) {

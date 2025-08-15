@@ -2,7 +2,6 @@ package com.github.bztmrlan.financeassistant.service;
 
 import com.github.bztmrlan.financeassistant.dto.GoalRequest;
 import com.github.bztmrlan.financeassistant.dto.GoalResponse;
-import com.github.bztmrlan.financeassistant.enums.SourceType;
 import com.github.bztmrlan.financeassistant.model.Alert;
 import com.github.bztmrlan.financeassistant.model.Category;
 import com.github.bztmrlan.financeassistant.model.Goal;
@@ -88,7 +87,7 @@ class GoalManagementServiceTest {
     void createGoal_Success() {
 
         when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
-        when(categoryRepository.findById(testCategory.getId())).thenReturn(Optional.of(testCategory));
+        when(categoryRepository.findByIdAndUserId(testCategory.getId(), testUser.getId())).thenReturn(Optional.of(testCategory));
         when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
 
 

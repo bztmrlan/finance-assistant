@@ -6,10 +6,12 @@ import com.github.bztmrlan.financeassistant.enums.SourceType;
 import com.github.bztmrlan.financeassistant.model.Alert;
 import com.github.bztmrlan.financeassistant.model.Category;
 import com.github.bztmrlan.financeassistant.model.Goal;
+import com.github.bztmrlan.financeassistant.model.Transaction;
 import com.github.bztmrlan.financeassistant.model.User;
 import com.github.bztmrlan.financeassistant.repository.AlertRepository;
 import com.github.bztmrlan.financeassistant.repository.CategoryRepository;
 import com.github.bztmrlan.financeassistant.repository.GoalRepository;
+import com.github.bztmrlan.financeassistant.repository.TransactionRepository;
 import com.github.bztmrlan.financeassistant.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +37,7 @@ public class GoalManagementService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final AlertRepository alertRepository;
+    private final TransactionRepository transactionRepository;
 
     @Transactional
     public GoalResponse createGoal(UUID userId, GoalRequest request) {
@@ -42,8 +46,8 @@ public class GoalManagementService {
 
         Category category = null;
         if (request.getCategoryId() != null) {
-            category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            category = categoryRepository.findByIdAndUserId(request.getCategoryId(), userId)
+                    .orElseThrow(() -> new RuntimeException("Category not found or does not belong to user"));
         }
 
         Goal goal = Goal.builder()
@@ -51,21 +55,34 @@ public class GoalManagementService {
                 .category(category)
                 .name(request.getName())
                 .targetAmount(request.getTargetAmount())
-                .targetDate(request.getTargetDate())
                 .currentAmount(BigDecimal.ZERO)
+                .targetDate(request.getTargetDate())
+                .currency(request.getCurrency() != null ? request.getCurrency() : "USD")
                 .completed(false)
                 .build();
 
         Goal savedGoal = goalRepository.save(goal);
-        log.info("Created goal: {} for user: {}", savedGoal.getName(), userId);
-
         return mapToGoalResponse(savedGoal);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<GoalResponse> getUserGoals(UUID userId) {
         List<Goal> goals = goalRepository.findByUserId(userId);
-        return goals.stream()
+
+        
+
+        List<Goal> updatedGoals = new ArrayList<>();
+        for (Goal goal : goals) {
+            try {
+                Goal updatedGoal = updateGoalProgressFromTransactions(goal.getId());
+                updatedGoals.add(updatedGoal);
+            } catch (Exception e) {
+                log.warn("Failed to update progress for goal {}: {}", goal.getId(), e.getMessage());
+                updatedGoals.add(goal);
+            }
+        }
+
+        return updatedGoals.stream()
                 .map(this::mapToGoalResponse)
                 .collect(Collectors.toList());
     }
@@ -86,11 +103,9 @@ public class GoalManagementService {
         goal.updateProgress(amount);
         Goal updatedGoal = goalRepository.save(goal);
 
-
         if (updatedGoal.isCompleted()) {
             createGoalCompletedAlert(updatedGoal);
         }
-
 
         checkGoalRisk(updatedGoal);
 
@@ -103,9 +118,7 @@ public class GoalManagementService {
         Goal goal = goalRepository.findById(goalId)
                 .filter(g -> g.getUser().getId().equals(userId))
                 .orElseThrow(() -> new RuntimeException("Goal not found"));
-
         goalRepository.delete(goal);
-        log.info("Deleted goal: {} for user: {}", goalId, userId);
     }
 
     @Transactional
@@ -126,7 +139,6 @@ public class GoalManagementService {
         goal.setCategory(category);
 
         Goal updatedGoal = goalRepository.save(goal);
-        log.info("Updated goal: {} for user: {}", goalId, userId);
 
         return mapToGoalResponse(updatedGoal);
     }
@@ -142,7 +154,6 @@ public class GoalManagementService {
                 .build();
 
         alertRepository.save(alert);
-        log.info("Created goal completion alert for goal: {}", goal.getId());
     }
 
     private void checkGoalRisk(Goal goal) {
@@ -180,7 +191,6 @@ public class GoalManagementService {
                 .build();
 
         alertRepository.save(alert);
-        log.info("Created goal risk alert for goal: {}", goal.getId());
     }
 
     private GoalResponse mapToGoalResponse(Goal goal) {
@@ -212,5 +222,91 @@ public class GoalManagementService {
     public void evaluateGoalsForUser(UUID userId) {
         List<Goal> goals = goalRepository.findByUserId(userId);
         goals.forEach(this::checkGoalRisk);
+    }
+    
+
+    @Transactional
+    public void calculateGoalProgressFromTransactions(UUID userId) {
+        List<Goal> goals = goalRepository.findByUserId(userId);
+        
+        for (Goal goal : goals) {
+            try {
+                updateGoalProgressFromTransactions(goal.getId());
+            } catch (Exception e) {
+                log.error("Error calculating progress for goal {}: {}", goal.getId(), e.getMessage());
+            }
+        }
+
+    }
+    
+
+    @Transactional
+    public Goal updateGoalProgressFromTransactions(UUID goalId) {
+        Goal goal = goalRepository.findById(goalId)
+                .orElseThrow(() -> new IllegalArgumentException("Goal not found"));
+        
+        BigDecimal calculatedProgress = calculateProgressFromTransactions(goal);
+        
+
+        if (calculatedProgress.compareTo(goal.getCurrentAmount()) != 0) {
+            goal.setCurrentAmount(calculatedProgress);
+
+            if (goal.getCurrentAmount().compareTo(goal.getTargetAmount()) >= 0) {
+                goal.setCompleted(true);
+                createGoalCompletedAlert(goal);
+            }
+
+            goal = goalRepository.save(goal);
+            checkGoalRisk(goal);
+        }
+
+        return goal;
+    }
+    
+
+    private BigDecimal calculateProgressFromTransactions(Goal goal) {
+
+        LocalDate startDate = LocalDate.now().minusYears(1);
+        LocalDate endDate = goal.getTargetDate();
+        
+        BigDecimal totalIncome = BigDecimal.ZERO;
+        
+        if (goal.getCategory() != null) {
+
+            List<Transaction> transactions = transactionRepository
+                .findByUserIdAndCategoryIdAndDateBetween(
+                    goal.getUser().getId(),
+                    goal.getCategory().getId(),
+                    startDate,
+                    endDate
+                );
+            
+
+            totalIncome = transactions.stream()
+                .map(Transaction::getAmount)
+                .filter(amount -> amount.compareTo(BigDecimal.ZERO) > 0)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                
+            log.debug("Goal {} with category {}: Found {} transactions, total income: ${}", 
+                goal.getName(), goal.getCategory().getName(), transactions.size(), totalIncome);
+        } else {
+
+            List<Transaction> allTransactions = transactionRepository
+                .findByUserIdAndDateBetween(
+                    goal.getUser().getId(),
+                    startDate,
+                    endDate
+                );
+
+            totalIncome = allTransactions.stream()
+                .map(Transaction::getAmount)
+                .filter(amount -> amount.compareTo(BigDecimal.ZERO) > 0)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                
+            log.debug("Goal {} without category: Found {} transactions, total income: ${}", 
+                goal.getName(), allTransactions.size(), totalIncome);
+        }
+        
+        return totalIncome;
     }
 } 

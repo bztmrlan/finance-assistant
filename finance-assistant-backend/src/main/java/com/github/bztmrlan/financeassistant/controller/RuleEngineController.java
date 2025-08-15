@@ -18,9 +18,7 @@ public class RuleEngineController {
 
     private final RuleEngineService ruleEngineService;
 
-    /**
-     * Manually trigger rule evaluation for the authenticated user
-     */
+
     @PostMapping("/evaluate")
     public ResponseEntity<String> evaluateRules(Authentication authentication) {
         try {
@@ -37,9 +35,7 @@ public class RuleEngineController {
         }
     }
 
-    /**
-     * Evaluate rules using Easy Rules engine
-     */
+
     @PostMapping("/evaluate/easy-rules")
     public ResponseEntity<String> evaluateRulesWithEasyRules(Authentication authentication) {
         try {
@@ -55,9 +51,6 @@ public class RuleEngineController {
         }
     }
 
-    /**
-     * Evaluate rules for a specific user (admin endpoint)
-     */
     @PostMapping("/evaluate/{userId}")
     public ResponseEntity<String> evaluateRulesForUser(@PathVariable UUID userId) {
         try {
@@ -72,15 +65,32 @@ public class RuleEngineController {
     }
 
     private UUID extractUserIdFromAuthentication(Authentication authentication) {
-        if (authentication != null && authentication.getPrincipal() != null) {
-            if (authentication.getPrincipal() instanceof CustomUserDetailsService.CustomUserDetails) {
-                return ((CustomUserDetailsService.CustomUserDetails) authentication.getPrincipal()).getUserId();
-            } else {
-                throw new UnsupportedOperationException(
-                    "Authentication principal is not of expected type CustomUserDetails"
-                );
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalArgumentException("Authentication is required");
+        }
+        
+        Object principal = authentication.getPrincipal();
+        
+
+        if (principal instanceof CustomUserDetailsService.CustomUserDetails) {
+            return ((CustomUserDetailsService.CustomUserDetails) principal).getUserId();
+        }
+        
+
+        if (principal instanceof String) {
+            try {
+                return UUID.fromString((String) principal);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid UUID format in authentication principal: " + principal);
             }
         }
-        throw new IllegalArgumentException("Authentication is required");
+        
+
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        }
+        
+        throw new IllegalArgumentException("Unsupported authentication principal type: " + 
+            (principal != null ? principal.getClass().getSimpleName() : "null"));
     }
 } 

@@ -1,6 +1,7 @@
 package com.github.bztmrlan.financeassistant.controller;
 
 import com.github.bztmrlan.financeassistant.dto.GoalRequest;
+import com.github.bztmrlan.financeassistant.dto.GoalProgressRequest;
 import com.github.bztmrlan.financeassistant.dto.GoalResponse;
 import com.github.bztmrlan.financeassistant.service.GoalManagementService;
 import lombok.RequiredArgsConstructor;
@@ -9,9 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
+
 import java.util.List;
 import java.util.UUID;
+import com.github.bztmrlan.financeassistant.security.CustomUserDetailsService;
 
 @RestController
 @RequestMapping("/api/goals")
@@ -21,18 +23,46 @@ public class GoalController {
 
     private final GoalManagementService goalManagementService;
 
+
+    private UUID extractUserIdFromAuthentication(Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalArgumentException("Authentication is required");
+        }
+        
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof CustomUserDetailsService.CustomUserDetails) {
+            return ((CustomUserDetailsService.CustomUserDetails) principal).getUserId();
+        }
+
+        if (principal instanceof String) {
+            try {
+                return UUID.fromString((String) principal);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid UUID format in authentication principal: " + principal);
+            }
+        }
+
+        if (principal instanceof UUID) {
+            return (UUID) principal;
+        }
+        
+        throw new IllegalArgumentException("Unsupported authentication principal type: " + 
+            (principal != null ? principal.getClass().getSimpleName() : "null"));
+    }
+
     @PostMapping
     public ResponseEntity<GoalResponse> createGoal(
             @RequestBody GoalRequest request,
             Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = extractUserIdFromAuthentication(authentication);
         GoalResponse goal = goalManagementService.createGoal(userId, request);
         return ResponseEntity.ok(goal);
     }
 
     @GetMapping
     public ResponseEntity<List<GoalResponse>> getUserGoals(Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = extractUserIdFromAuthentication(authentication);
         List<GoalResponse> goals = goalManagementService.getUserGoals(userId);
         return ResponseEntity.ok(goals);
     }
@@ -41,7 +71,7 @@ public class GoalController {
     public ResponseEntity<GoalResponse> getGoal(
             @PathVariable UUID goalId,
             Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = extractUserIdFromAuthentication(authentication);
         return goalManagementService.getGoalById(goalId, userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -52,7 +82,7 @@ public class GoalController {
             @PathVariable UUID goalId,
             @RequestBody GoalRequest request,
             Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = extractUserIdFromAuthentication(authentication);
         GoalResponse goal = goalManagementService.updateGoal(goalId, userId, request);
         return ResponseEntity.ok(goal);
     }
@@ -60,10 +90,10 @@ public class GoalController {
     @PutMapping("/{goalId}/progress")
     public ResponseEntity<GoalResponse> updateGoalProgress(
             @PathVariable UUID goalId,
-            @RequestParam BigDecimal amount,
+            @RequestBody GoalProgressRequest request,
             Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
-        GoalResponse goal = goalManagementService.updateGoalProgress(goalId, userId, amount);
+        UUID userId = extractUserIdFromAuthentication(authentication);
+        GoalResponse goal = goalManagementService.updateGoalProgress(goalId, userId, request.getAmount());
         return ResponseEntity.ok(goal);
     }
 
@@ -71,15 +101,22 @@ public class GoalController {
     public ResponseEntity<Void> deleteGoal(
             @PathVariable UUID goalId,
             Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = extractUserIdFromAuthentication(authentication);
         goalManagementService.deleteGoal(goalId, userId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/evaluate")
     public ResponseEntity<Void> evaluateGoals(Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = extractUserIdFromAuthentication(authentication);
         goalManagementService.evaluateGoalsForUser(userId);
+        return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("/calculate-progress")
+    public ResponseEntity<Void> calculateGoalProgressFromTransactions(Authentication authentication) {
+        UUID userId = extractUserIdFromAuthentication(authentication);
+        goalManagementService.calculateGoalProgressFromTransactions(userId);
         return ResponseEntity.ok().build();
     }
 } 

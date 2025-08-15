@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Assistant - Test Page</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-title {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        
+        .test-link {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .test-link:hover {
+            background: #5a67d8;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">🧪 Finance Assistant - Test Page</h1>
+        
+        <div class="test-section">
+            <h3>✅ File Structure Test</h3>
+            <p>This page is working, which means:</p>
+            <ul>
+                <li>HTML files are accessible</li>
+                <li>CSS files are loading correctly</li>
+                <li>Basic server functionality is working</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 Navigation Test</h3>
+            <p>Test these links to verify they work:</p>
+            <a href="../index.html" class="test-link">🏠 Welcome Page</a>
+            <a href="auth.html" class="test-link">🔐 Authentication</a>
+            <a href="dashboard.html" class="test-link">📊 Dashboard</a>
+            <a href="budget-management.html" class="test-link">💰 Budget Management</a>
+            <a href="goal-management.html" class="test-link">🎯 Goal Management</a>
+            <a href="transaction-management.html" class="test-link">📋 Transaction Management</a>
+            <a href="transaction-upload.html" class="test-link">📤 Transaction Upload</a>
+            <a href="insight-service.html" class="test-link">🧠 AI Insights</a>
+            <a href="auth-debug.html" class="test-link">🐛 Auth Debug</a>
+        </div>
+        
+        <div class="test-section">
+            <h3>📁 Directory Structure</h3>
+            <p>Current working directory structure:</p>
+            <ul>
+                <li><strong>Root:</strong> Main HTML pages and entry point</li>
+                <li><strong>css/:</strong> Stylesheets</li>
+                <li><strong>js/:</strong> JavaScript files</li>
+                <li><strong>docs/:</strong> Documentation</li>
+                <li><strong>tests/:</strong> Testing files</li>
+                <li><strong>assets/:</strong> Additional resources</li>
+            </ul>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Troubleshooting</h3>
+            <p>If pages are not loading:</p>
+            <ol>
+                <li>Check that your web server is running on port 3000</li>
+                <li>Verify that all HTML files are in the root directory</li>
+                <li>Check browser console for any JavaScript errors</li>
+                <li>Ensure CSS and JS file paths are correct</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <h3>📱 Test Results</h3>
+            <div id="testResults">
+                <div class="status success">✅ Test page loaded successfully</div>
+                <div class="status success">✅ CSS styles applied</div>
+                <div class="status success">✅ Navigation links available</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Simple test to verify JavaScript is working
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Test page loaded successfully');
+            console.log('✅ JavaScript is working');
+            
+            // Test if we can access other files
+            fetch('css/styles.css')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('✅ CSS file accessible');
+                        document.getElementById('testResults').innerHTML += 
+                            '<div class="status success">✅ CSS file accessible</div>';
+                    } else {
+                        console.error('❌ CSS file not accessible');
+                        document.getElementById('testResults').innerHTML += 
+                            '<div class="status error">❌ CSS file not accessible</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error accessing CSS file:', error);
+                    document.getElementById('testResults').innerHTML += 
+                        '<div class="status error">❌ Error accessing CSS file</div>';
+                });
+        });
+    </script>
+</body>
+</html> 

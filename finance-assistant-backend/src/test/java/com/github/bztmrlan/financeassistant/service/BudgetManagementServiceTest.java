@@ -3,7 +3,6 @@ package com.github.bztmrlan.financeassistant.service;
 import com.github.bztmrlan.financeassistant.model.*;
 import com.github.bztmrlan.financeassistant.repository.*;
 import com.github.bztmrlan.financeassistant.enums.BudgetStatus;
-import com.github.bztmrlan.financeassistant.enums.SourceType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -233,7 +232,7 @@ class BudgetManagementServiceTest {
     @Test
     void testGetUserBudgets() {
 
-        when(budgetRepository.findByUserId(testUser.getId())).thenReturn(Arrays.asList(testBudget));
+        when(budgetRepository.findByUserIdWithUserCategories(testUser.getId())).thenReturn(Arrays.asList(testBudget));
 
 
         List<Budget> result = budgetManagementService.getUserBudgets(testUser.getId());
@@ -254,7 +253,7 @@ class BudgetManagementServiceTest {
                 .status(BudgetStatus.COMPLETED)
                 .build();
 
-        when(budgetRepository.findByUserId(testUser.getId()))
+        when(budgetRepository.findByUserIdWithUserCategories(testUser.getId()))
             .thenReturn(Arrays.asList(testBudget, archivedBudget));
 
 
