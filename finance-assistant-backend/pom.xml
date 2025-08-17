@@ -38,8 +38,18 @@
 		</dependency>
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt</artifactId>
-			<version>0.9.1</version>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.11.5</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.11.5</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.11.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.security</groupId>
@@ -115,11 +125,7 @@
 		</dependency>
 		
 		<!-- Deepseek integration (OpenAI-compatible API) -->
-		<dependency>
-			<groupId>com.theokanning.openai-gpt3-java</groupId>
-			<artifactId>service</artifactId>
-			<version>0.18.2</version>
-		</dependency>
+
 		
 		<!-- JSON processing -->
 		<dependency>
@@ -133,35 +139,6 @@
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 		
-		<!-- Resilience4j for Circuit Breaker and Retry -->
-		<dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-spring-boot3</artifactId>
-			<version>2.2.0</version>
-		</dependency>
-		
-		<!-- Resilience4j Circuit Breaker -->
-		<dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-circuitbreaker</artifactId>
-			<version>2.2.0</version>
-		</dependency>
-		
-		<!-- Resilience4j Retry -->
-		<dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-retry</artifactId>
-			<version>2.2.0</version>
-		</dependency>
-		
-		<!-- Resilience4j Time Limiter -->
-		<dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-timelimiter</artifactId>
-			<version>2.2.0</version>
-		</dependency>
-		
-
 	</dependencies>
 
 	<build>
