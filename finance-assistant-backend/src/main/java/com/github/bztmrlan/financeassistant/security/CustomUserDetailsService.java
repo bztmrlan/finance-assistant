@@ -2,6 +2,8 @@ package com.github.bztmrlan.financeassistant.security;
 
 import com.github.bztmrlan.financeassistant.model.User;
 import com.github.bztmrlan.financeassistant.repository.UserRepository;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,22 +34,15 @@ public class CustomUserDetailsService implements UserDetailsService {
         );
     }
 
+
+    @AllArgsConstructor
+    @Getter
     public static class CustomUserDetails implements UserDetails {
         private final UUID userId;
         private final String username;
         private final String password;
         private final List<GrantedAuthority> authorities;
 
-        public CustomUserDetails(UUID userId, String username, String password, List<GrantedAuthority> authorities) {
-            this.userId = userId;
-            this.username = username;
-            this.password = password;
-            this.authorities = authorities;
-        }
-
-        public UUID getUserId() {
-            return userId;
-        }
 
         @Override
         public List<GrantedAuthority> getAuthorities() {
