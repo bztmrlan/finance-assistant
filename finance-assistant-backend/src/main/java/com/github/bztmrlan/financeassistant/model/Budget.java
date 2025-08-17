@@ -37,9 +37,6 @@ public class Budget {
     @Column
     private String description;
 
-    @Column
-    private java.math.BigDecimal amount;
-
     @Column(nullable = false)
     private LocalDate startDate;
 

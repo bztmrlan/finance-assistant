@@ -21,9 +21,9 @@ public interface BudgetRepository extends JpaRepository<Budget, UUID> {
     List<Object[]> getCategorySpendingForBudget(@Param("budgetId") UUID budgetId);
 
     @Query("SELECT DISTINCT b FROM Budget b " +
-            "JOIN FETCH b.categories bc " +
-            "JOIN FETCH bc.category c " +
+            "LEFT JOIN FETCH b.categories bc " +
+            "LEFT JOIN FETCH bc.category c " +
             "WHERE b.user.id = :userId " +
-            "AND c.user.id = :userId")
+            "AND (c.user.id = :userId OR c.user.id IS NULL)")
     List<Budget> findByUserIdWithUserCategories(@Param("userId") UUID userId);
 }
