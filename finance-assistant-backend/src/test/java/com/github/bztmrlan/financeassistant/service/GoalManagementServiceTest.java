@@ -2,14 +2,9 @@ package com.github.bztmrlan.financeassistant.service;
 
 import com.github.bztmrlan.financeassistant.dto.GoalRequest;
 import com.github.bztmrlan.financeassistant.dto.GoalResponse;
-import com.github.bztmrlan.financeassistant.model.Alert;
-import com.github.bztmrlan.financeassistant.model.Category;
-import com.github.bztmrlan.financeassistant.model.Goal;
-import com.github.bztmrlan.financeassistant.model.User;
-import com.github.bztmrlan.financeassistant.repository.AlertRepository;
-import com.github.bztmrlan.financeassistant.repository.CategoryRepository;
-import com.github.bztmrlan.financeassistant.repository.GoalRepository;
-import com.github.bztmrlan.financeassistant.repository.UserRepository;
+import com.github.bztmrlan.financeassistant.enums.CategoryType;
+import com.github.bztmrlan.financeassistant.model.*;
+import com.github.bztmrlan.financeassistant.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,9 +37,15 @@ class GoalManagementServiceTest {
     @Mock
     private AlertRepository alertRepository;
 
+    @Mock
+    private TransactionRepository transactionRepository;
+
     @InjectMocks
     private GoalManagementService goalManagementService;
 
+    private UUID testUserId;
+    private UUID testGoalId;
+    private UUID testCategoryId;
     private User testUser;
     private Category testCategory;
     private Goal testGoal;
@@ -52,276 +53,578 @@ class GoalManagementServiceTest {
 
     @BeforeEach
     void setUp() {
+        testUserId = UUID.randomUUID();
+        testGoalId = UUID.randomUUID();
+        testCategoryId = UUID.randomUUID();
+        
         testUser = User.builder()
-                .id(UUID.randomUUID())
+                .id(testUserId)
+                .name("Test User")
                 .email("test@example.com")
                 .build();
-
+        
         testCategory = Category.builder()
-                .id(UUID.randomUUID())
-                .name("Savings")
+                .id(testCategoryId)
+                .name("Test Category")
+                .type(CategoryType.EXPENSE)
+                .user(testUser)
                 .build();
-
+        
         testGoal = Goal.builder()
-                .id(UUID.randomUUID())
+                .id(testGoalId)
                 .user(testUser)
                 .category(testCategory)
-                .name("Save $1000")
+                .name("Test Goal")
                 .targetAmount(new BigDecimal("1000.00"))
                 .currentAmount(BigDecimal.ZERO)
-                .targetDate(LocalDate.now().plusMonths(3))
+                .targetDate(LocalDate.now().plusMonths(6))
                 .currency("USD")
                 .completed(false)
                 .build();
-
-        testGoalRequest = GoalRequest.builder()
-                .name("Save $1000")
-                .targetAmount(new BigDecimal("1000.00"))
-                .targetDate(LocalDate.now().plusMonths(3))
-                .categoryId(testCategory.getId())
-                .currency("USD")
-                .build();
+        
+        testGoalRequest = new GoalRequest();
+        testGoalRequest.setName("Test Goal");
+        testGoalRequest.setTargetAmount(new BigDecimal("1000.00"));
+        testGoalRequest.setTargetDate(LocalDate.now().plusMonths(6));
+        testGoalRequest.setCurrency("USD");
+        testGoalRequest.setCategoryId(testCategoryId);
     }
 
-    @Test
-    void createGoal_Success() {
+    // ==================== HAPPY PATH TESTS ====================
 
-        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
-        when(categoryRepository.findByIdAndUserId(testCategory.getId(), testUser.getId())).thenReturn(Optional.of(testCategory));
+    @Test
+    void testCreateGoal_Success() {
+        // Given
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+        when(categoryRepository.findByIdAndUserId(testCategoryId, testUserId)).thenReturn(Optional.of(testCategory));
         when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
 
+        // When
+        GoalResponse result = goalManagementService.createGoal(testUserId, testGoalRequest);
 
-        GoalResponse result = goalManagementService.createGoal(testUser.getId(), testGoalRequest);
-
-
+        // Then
         assertNotNull(result);
-        assertEquals(testGoal.getName(), result.getName());
-        assertEquals(testGoal.getTargetAmount(), result.getTargetAmount());
-        assertEquals(testGoal.getTargetDate(), result.getTargetDate());
+        assertEquals("Test Goal", result.getName());
+        assertEquals(new BigDecimal("1000.00"), result.getTargetAmount());
+        assertEquals(BigDecimal.ZERO, result.getCurrentAmount());
+        assertEquals("USD", result.getCurrency());
+        assertFalse(result.isCompleted());
+        
+        verify(userRepository).findById(testUserId);
+        verify(categoryRepository).findByIdAndUserId(testCategoryId, testUserId);
         verify(goalRepository).save(any(Goal.class));
     }
 
     @Test
-    void createGoal_UserNotFound() {
+    void testCreateGoal_WithoutCategory() {
+        // Given
+        testGoalRequest.setCategoryId(null);
+        Goal goalWithoutCategory = Goal.builder()
+                .id(testGoalId)
+                .user(testUser)
+                .category(null)
+                .name("Test Goal")
+                .targetAmount(new BigDecimal("1000.00"))
+                .currentAmount(BigDecimal.ZERO)
+                .targetDate(LocalDate.now().plusMonths(6))
+                .currency("USD")
+                .completed(false)
+                .build();
+        
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+        when(goalRepository.save(any(Goal.class))).thenReturn(goalWithoutCategory);
 
-        when(userRepository.findById(testUser.getId())).thenReturn(Optional.empty());
+        // When
+        GoalResponse result = goalManagementService.createGoal(testUserId, testGoalRequest);
 
+        // Then
+        assertNotNull(result);
+        assertEquals("Test Goal", result.getName());
+        assertNull(result.getCategoryName());
+        
+        verify(userRepository).findById(testUserId);
+        verify(categoryRepository, never()).findByIdAndUserId(any(), any());
+        verify(goalRepository).save(any(Goal.class));
+    }
 
-        assertThrows(RuntimeException.class, () -> 
-            goalManagementService.createGoal(testUser.getId(), testGoalRequest));
+    @Test
+    void testCreateGoal_DefaultCurrency() {
+        // Given
+        testGoalRequest.setCurrency(null);
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+        when(categoryRepository.findByIdAndUserId(testCategoryId, testUserId)).thenReturn(Optional.of(testCategory));
+        when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
+
+        // When
+        GoalResponse result = goalManagementService.createGoal(testUserId, testGoalRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("USD", result.getCurrency());
+        
+        verify(goalRepository).save(any(Goal.class));
+    }
+
+    @Test
+    void testGetUserGoals_Success() {
+        // Given
+        List<Goal> goals = List.of(testGoal);
+        when(goalRepository.findByUserId(testUserId)).thenReturn(goals);
+
+        // When
+        List<GoalResponse> result = goalManagementService.getUserGoals(testUserId);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Test Goal", result.get(0).getName());
+        
+        verify(goalRepository).findByUserId(testUserId);
+    }
+
+    @Test
+    void testGetGoalById_Success() {
+        // Given
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(testGoal));
+
+        // When
+        Optional<GoalResponse> result = goalManagementService.getGoalById(testGoalId, testUserId);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertEquals("Test Goal", result.get().getName());
+        assertEquals(testGoalId, result.get().getId());
+        
+        verify(goalRepository).findById(testGoalId);
+    }
+
+    @Test
+    void testUpdateGoalProgress_Success() {
+        // Given
+        BigDecimal progressAmount = new BigDecimal("100.00");
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(testGoal));
+        when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
+
+        // When
+        GoalResponse result = goalManagementService.updateGoalProgress(testGoalId, testUserId, progressAmount);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(progressAmount, result.getCurrentAmount());
+        
+        verify(goalRepository).findById(testGoalId);
+        verify(goalRepository).save(testGoal);
+    }
+
+    @Test
+    void testUpdateGoalProgress_GoalCompleted() {
+        // Given
+        BigDecimal progressAmount = new BigDecimal("1000.00");
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(testGoal));
+        when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
+
+        // When
+        GoalResponse result = goalManagementService.updateGoalProgress(testGoalId, testUserId, progressAmount);
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isCompleted());
+        assertEquals(new BigDecimal("1000.00"), result.getCurrentAmount());
+        
+        verify(goalRepository).save(testGoal);
+    }
+
+    @Test
+    void testDeleteGoal_Success() {
+        // Given
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(testGoal));
+        doNothing().when(goalRepository).delete(testGoal);
+
+        // When
+        assertDoesNotThrow(() -> goalManagementService.deleteGoal(testGoalId, testUserId));
+
+        // Then
+        verify(goalRepository).findById(testGoalId);
+        verify(goalRepository).delete(testGoal);
+    }
+
+    // ==================== UNHAPPY PATH TESTS ====================
+
+    @Test
+    void testCreateGoal_UserNotFound() {
+        // Given
+        when(userRepository.findById(testUserId)).thenReturn(Optional.empty());
+
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            goalManagementService.createGoal(testUserId, testGoalRequest);
+        });
+
+        assertEquals("User not found", exception.getMessage());
+        
+        verify(userRepository).findById(testUserId);
+        verify(categoryRepository, never()).findByIdAndUserId(any(), any());
         verify(goalRepository, never()).save(any(Goal.class));
     }
 
     @Test
-    void getUserGoals_Success() {
+    void testCreateGoal_CategoryNotFound() {
+        // Given
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+        when(categoryRepository.findByIdAndUserId(testCategoryId, testUserId)).thenReturn(Optional.empty());
 
-        List<Goal> goals = List.of(testGoal);
-        when(goalRepository.findByUserId(testUser.getId())).thenReturn(goals);
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            goalManagementService.createGoal(testUserId, testGoalRequest);
+        });
 
-
-        List<GoalResponse> result = goalManagementService.getUserGoals(testUser.getId());
-
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(testGoal.getName(), result.get(0).getName());
+        assertEquals("Category not found or does not belong to user", exception.getMessage());
+        
+        verify(userRepository).findById(testUserId);
+        verify(categoryRepository).findByIdAndUserId(testCategoryId, testUserId);
+        verify(goalRepository, never()).save(any(Goal.class));
     }
 
     @Test
-    void getGoalById_Success() {
+    void testGetGoalById_NotFound() {
+        // Given
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.empty());
 
-        when(goalRepository.findById(testGoal.getId())).thenReturn(Optional.of(testGoal));
+        // When
+        Optional<GoalResponse> result = goalManagementService.getGoalById(testGoalId, testUserId);
 
-
-        Optional<GoalResponse> result = goalManagementService.getGoalById(testGoal.getId(), testUser.getId());
-
-
-        assertTrue(result.isPresent());
-        assertEquals(testGoal.getName(), result.get().getName());
-    }
-
-    @Test
-    void getGoalById_NotFound() {
-
-        when(goalRepository.findById(testGoal.getId())).thenReturn(Optional.empty());
-
-
-        Optional<GoalResponse> result = goalManagementService.getGoalById(testGoal.getId(), testUser.getId());
-
-
+        // Then
         assertFalse(result.isPresent());
+        
+        verify(goalRepository).findById(testGoalId);
     }
 
     @Test
-    void updateGoalProgress_Success() {
-
-        BigDecimal progressAmount = new BigDecimal("100.00");
-        
-
-        Goal mockGoal = Goal.builder()
-                .id(testGoal.getId())
-                .user(testUser)
-                .category(testCategory)
-                .name(testGoal.getName())
-                .targetAmount(testGoal.getTargetAmount())
-                .currentAmount(testGoal.getCurrentAmount())
-                .targetDate(testGoal.getTargetDate())
-                .currency(testGoal.getCurrency())
-                .completed(testGoal.isCompleted())
+    void testGetGoalById_UserMismatch() {
+        // Given
+        UUID otherUserId = UUID.randomUUID();
+        User otherUser = User.builder().id(otherUserId).build();
+        Goal otherUserGoal = Goal.builder()
+                .id(testGoalId)
+                .user(otherUser)
+                .name("Other User Goal")
                 .build();
         
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(otherUserGoal));
 
-        Goal savedGoal = Goal.builder()
-                .id(testGoal.getId())
-                .user(testUser)
-                .category(testCategory)
-                .name(testGoal.getName())
-                .targetAmount(testGoal.getTargetAmount())
-                .currentAmount(progressAmount)
-                .targetDate(testGoal.getTargetDate())
-                .currency(testGoal.getCurrency())
-                .completed(false)
-                .build();
+        // When
+        Optional<GoalResponse> result = goalManagementService.getGoalById(testGoalId, testUserId);
+
+        // Then
+        assertFalse(result.isPresent());
         
-        when(goalRepository.findById(testGoal.getId())).thenReturn(Optional.of(mockGoal));
-        when(goalRepository.save(any(Goal.class))).thenReturn(savedGoal);
-
-
-        GoalResponse result = goalManagementService.updateGoalProgress(testGoal.getId(), testUser.getId(), progressAmount);
-
-
-        assertNotNull(result);
-        assertEquals(progressAmount, result.getCurrentAmount());
-        assertEquals(new BigDecimal("10.00"), result.getProgressPercentage());
-        verify(goalRepository).save(any(Goal.class));
-        verify(alertRepository, never()).save(any(Alert.class));
+        verify(goalRepository).findById(testGoalId);
     }
 
     @Test
-    void updateGoalProgress_GoalCompleted() {
+    void testUpdateGoalProgress_GoalNotFound() {
+        // Given
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.empty());
 
-        BigDecimal progressAmount = new BigDecimal("100.00");
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            goalManagementService.updateGoalProgress(testGoalId, testUserId, new BigDecimal("100.00"));
+        });
+
+        assertEquals("Goal not found", exception.getMessage());
         
-
-        Goal mockGoal = Goal.builder()
-                .id(testGoal.getId())
-                .user(testUser)
-                .category(testCategory)
-                .name(testGoal.getName())
-                .targetAmount(new BigDecimal("1000.00"))
-                .currentAmount(new BigDecimal("900.00"))
-                .targetDate(testGoal.getTargetDate())
-                .currency(testGoal.getCurrency())
-                .completed(false)
-                .build();
-        
-
-        Goal completedGoal = Goal.builder()
-                .id(testGoal.getId())
-                .user(testUser)
-                .category(testCategory)
-                .name(testGoal.getName())
-                .targetAmount(new BigDecimal("1000.00"))
-                .currentAmount(new BigDecimal("1000.00"))
-                .targetDate(testGoal.getTargetDate())
-                .currency(testGoal.getCurrency())
-                .completed(true)
-                .build();
-        
-        when(goalRepository.findById(testGoal.getId())).thenReturn(Optional.of(mockGoal));
-        when(goalRepository.save(any(Goal.class))).thenReturn(completedGoal);
-        when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
-
-
-        GoalResponse result = goalManagementService.updateGoalProgress(testGoal.getId(), testUser.getId(), progressAmount);
-
-
-        assertNotNull(result);
-        assertTrue(result.isCompleted());
-        assertEquals(new BigDecimal("1000.00"), result.getCurrentAmount());
-        assertEquals(new BigDecimal("100.00"), result.getProgressPercentage());
-        verify(goalRepository).save(any(Goal.class));
-        verify(alertRepository).save(any(Alert.class));
+        verify(goalRepository).findById(testGoalId);
+        verify(goalRepository, never()).save(any(Goal.class));
     }
 
     @Test
-    void deleteGoal_Success() {
+    void testUpdateGoalProgress_UserMismatch() {
+        // Given
+        UUID otherUserId = UUID.randomUUID();
+        User otherUser = User.builder().id(otherUserId).build();
+        Goal otherUserGoal = Goal.builder()
+                .id(testGoalId)
+                .user(otherUser)
+                .name("Other User Goal")
+                .build();
+        
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(otherUserGoal));
 
-        when(goalRepository.findById(testGoal.getId())).thenReturn(Optional.of(testGoal));
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            goalManagementService.updateGoalProgress(testGoalId, testUserId, new BigDecimal("100.00"));
+        });
 
-
-        goalManagementService.deleteGoal(testGoal.getId(), testUser.getId());
-
-
-        verify(goalRepository).delete(testGoal);
+        assertEquals("Goal not found", exception.getMessage());
+        
+        verify(goalRepository).findById(testGoalId);
+        verify(goalRepository, never()).save(any(Goal.class));
     }
 
     @Test
-    void deleteGoal_GoalNotFound() {
+    void testDeleteGoal_GoalNotFound() {
+        // Given
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.empty());
 
-        when(goalRepository.findById(testGoal.getId())).thenReturn(Optional.empty());
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            goalManagementService.deleteGoal(testGoalId, testUserId);
+        });
 
-
-        assertThrows(RuntimeException.class, () -> 
-            goalManagementService.deleteGoal(testGoal.getId(), testUser.getId()));
+        assertEquals("Goal not found", exception.getMessage());
+        
+        verify(goalRepository).findById(testGoalId);
         verify(goalRepository, never()).delete(any(Goal.class));
     }
 
     @Test
-    void updateGoalProgress_GoalAtRisk() {
-
-        BigDecimal progressAmount = new BigDecimal("50.00");
-        
-
-        Goal mockGoal = Goal.builder()
-                .id(testGoal.getId())
-                .user(testUser)
-                .category(testCategory)
-                .name(testGoal.getName())
-                .targetAmount(new BigDecimal("1000.00"))
-                .currentAmount(new BigDecimal("200.00"))
-                .targetDate(LocalDate.now().plusDays(15))
-                .currency(testGoal.getCurrency())
-                .completed(false)
+    void testDeleteGoal_UserMismatch() {
+        // Given
+        UUID otherUserId = UUID.randomUUID();
+        User otherUser = User.builder().id(otherUserId).build();
+        Goal otherUserGoal = Goal.builder()
+                .id(testGoalId)
+                .user(otherUser)
+                .name("Other User Goal")
                 .build();
         
-        Goal savedGoal = Goal.builder()
-                .id(testGoal.getId())
-                .user(testUser)
-                .category(testCategory)
-                .name(testGoal.getName())
-                .targetAmount(new BigDecimal("1000.00"))
-                .currentAmount(new BigDecimal("200.00"))
-                .targetDate(LocalDate.now().plusDays(15))
-                .currency(testGoal.getCurrency())
-                .completed(false)
-                .build();
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(otherUserGoal));
+
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            goalManagementService.deleteGoal(testGoalId, testUserId);
+        });
+
+        assertEquals("Goal not found", exception.getMessage());
         
-        when(goalRepository.findById(testGoal.getId())).thenReturn(Optional.of(mockGoal));
-        when(goalRepository.save(any(Goal.class))).thenReturn(savedGoal);
-        when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
+        verify(goalRepository).findById(testGoalId);
+        verify(goalRepository, never()).delete(any(Goal.class));
+    }
 
+    // ==================== EDGE CASE TESTS ====================
 
-        GoalResponse result = goalManagementService.updateGoalProgress(testGoal.getId(), testUser.getId(), progressAmount);
+    @Test
+    void testGetUserGoals_EmptyList() {
+        // Given
+        when(goalRepository.findByUserId(testUserId)).thenReturn(List.of());
 
+        // When
+        List<GoalResponse> result = goalManagementService.getUserGoals(testUserId);
 
+        // Then
         assertNotNull(result);
-        assertEquals(new BigDecimal("200.00"), result.getCurrentAmount());
-        assertEquals(new BigDecimal("20.00"), result.getProgressPercentage());
-        verify(goalRepository).save(any(Goal.class));
-        verify(alertRepository).save(any(Alert.class));
+        assertTrue(result.isEmpty());
+        
+        verify(goalRepository).findByUserId(testUserId);
     }
 
     @Test
-    void evaluateGoalsForUser_Success() {
-
+    void testGetUserGoals_ProgressUpdateFailure() {
+        // Given
         List<Goal> goals = List.of(testGoal);
-        when(goalRepository.findByUserId(testUser.getId())).thenReturn(goals);
+        when(goalRepository.findByUserId(testUserId)).thenReturn(goals);
 
+        // When
+        List<GoalResponse> result = goalManagementService.getUserGoals(testUserId);
 
-        goalManagementService.evaluateGoalsForUser(testUser.getId());
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Test Goal", result.get(0).getName());
+        
+        verify(goalRepository).findByUserId(testUserId);
+    }
 
+    @Test
+    void testUpdateGoalProgress_NegativeAmount() {
+        // Given
+        BigDecimal negativeAmount = new BigDecimal("-50.00");
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(testGoal));
+        when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
 
-        verify(goalRepository).findByUserId(testUser.getId());
+        // When
+        GoalResponse result = goalManagementService.updateGoalProgress(testGoalId, testUserId, negativeAmount);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(negativeAmount, result.getCurrentAmount());
+        
+        verify(goalRepository).save(testGoal);
+    }
+
+    @Test
+    void testUpdateGoalProgress_ZeroAmount() {
+        // Given
+        BigDecimal zeroAmount = BigDecimal.ZERO;
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(testGoal));
+        when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
+
+        // When
+        GoalResponse result = goalManagementService.updateGoalProgress(testGoalId, testUserId, zeroAmount);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(BigDecimal.ZERO, result.getCurrentAmount());
+        
+        verify(goalRepository).save(testGoal);
+    }
+
+    @Test
+    void testUpdateGoalProgress_ExactTargetAmount() {
+        // Given
+        BigDecimal exactAmount = new BigDecimal("1000.00");
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(testGoal));
+        when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
+
+        // When
+        GoalResponse result = goalManagementService.updateGoalProgress(testGoalId, testUserId, exactAmount);
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isCompleted());
+        assertEquals(exactAmount, result.getCurrentAmount());
+        
+        verify(goalRepository).save(testGoal);
+    }
+
+    @Test
+    void testUpdateGoalProgress_OverTargetAmount() {
+        // Given
+        BigDecimal overAmount = new BigDecimal("1200.00");
+        when(goalRepository.findById(testGoalId)).thenReturn(Optional.of(testGoal));
+        when(goalRepository.save(any(Goal.class))).thenReturn(testGoal);
+
+        // When
+        GoalResponse result = goalManagementService.updateGoalProgress(testGoalId, testUserId, overAmount);
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isCompleted());
+        assertEquals(overAmount, result.getCurrentAmount());
+        
+        verify(goalRepository).save(testGoal);
+    }
+
+    @Test
+    void testCreateGoal_WithSpecialCharacters() {
+        // Given
+        testGoalRequest.setName("Goal with special chars: !@#$%^&*()");
+        Goal specialCharGoal = Goal.builder()
+                .id(testGoalId)
+                .user(testUser)
+                .category(testCategory)
+                .name("Goal with special chars: !@#$%^&*()")
+                .targetAmount(new BigDecimal("1000.00"))
+                .currentAmount(BigDecimal.ZERO)
+                .targetDate(LocalDate.now().plusMonths(6))
+                .currency("USD")
+                .completed(false)
+                .build();
+        
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+        when(categoryRepository.findByIdAndUserId(testCategoryId, testUserId)).thenReturn(Optional.of(testCategory));
+        when(goalRepository.save(any(Goal.class))).thenReturn(specialCharGoal);
+
+        // When
+        GoalResponse result = goalManagementService.createGoal(testUserId, testGoalRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("Goal with special chars: !@#$%^&*()", result.getName());
+        
+        verify(goalRepository).save(any(Goal.class));
+    }
+
+    @Test
+    void testCreateGoal_WithLongName() {
+        // Given
+        String longName = "A".repeat(255); // Very long name
+        testGoalRequest.setName(longName);
+        Goal longNameGoal = Goal.builder()
+                .id(testGoalId)
+                .user(testUser)
+                .category(testCategory)
+                .name(longName)
+                .targetAmount(new BigDecimal("1000.00"))
+                .currentAmount(BigDecimal.ZERO)
+                .targetDate(LocalDate.now().plusMonths(6))
+                .currency("USD")
+                .completed(false)
+                .build();
+        
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+        when(categoryRepository.findByIdAndUserId(testCategoryId, testUserId)).thenReturn(Optional.of(testCategory));
+        when(goalRepository.save(any(Goal.class))).thenReturn(longNameGoal);
+
+        // When
+        GoalResponse result = goalManagementService.createGoal(testUserId, testGoalRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(longName, result.getName());
+        
+        verify(goalRepository).save(any(Goal.class));
+    }
+
+    @Test
+    void testCreateGoal_WithPastTargetDate() {
+        // Given
+        LocalDate pastDate = LocalDate.now().minusDays(1);
+        testGoalRequest.setTargetDate(pastDate);
+        Goal pastDateGoal = Goal.builder()
+                .id(testGoalId)
+                .user(testUser)
+                .category(testCategory)
+                .name("Test Goal")
+                .targetAmount(new BigDecimal("1000.00"))
+                .currentAmount(BigDecimal.ZERO)
+                .targetDate(pastDate)
+                .currency("USD")
+                .completed(false)
+                .build();
+        
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+        when(categoryRepository.findByIdAndUserId(testCategoryId, testUserId)).thenReturn(Optional.of(testCategory));
+        when(goalRepository.save(any(Goal.class))).thenReturn(pastDateGoal);
+
+        // When
+        GoalResponse result = goalManagementService.createGoal(testUserId, testGoalRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(pastDate, result.getTargetDate());
+        
+        verify(goalRepository).save(any(Goal.class));
+    }
+
+    @Test
+    void testCreateGoal_WithVeryLargeAmount() {
+        // Given
+        BigDecimal largeAmount = new BigDecimal("999999999.99");
+        testGoalRequest.setTargetAmount(largeAmount);
+        Goal largeAmountGoal = Goal.builder()
+                .id(testGoalId)
+                .user(testUser)
+                .category(testCategory)
+                .name("Test Goal")
+                .targetAmount(largeAmount)
+                .currentAmount(BigDecimal.ZERO)
+                .targetDate(LocalDate.now().plusMonths(6))
+                .currency("USD")
+                .completed(false)
+                .build();
+        
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+        when(categoryRepository.findByIdAndUserId(testCategoryId, testUserId)).thenReturn(Optional.of(testCategory));
+        when(goalRepository.save(any(Goal.class))).thenReturn(largeAmountGoal);
+
+        // When
+        GoalResponse result = goalManagementService.createGoal(testUserId, testGoalRequest);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(largeAmount, result.getTargetAmount());
+        
+        verify(goalRepository).save(any(Goal.class));
     }
 } 

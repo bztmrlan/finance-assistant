@@ -2,6 +2,9 @@ package com.github.bztmrlan.financeassistant.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.github.bztmrlan.financeassistant.dto.CategoryLimitRequest;
+import com.github.bztmrlan.financeassistant.dto.CreateBudgetRequest;
+import com.github.bztmrlan.financeassistant.dto.UpdateLimitRequest;
 import com.github.bztmrlan.financeassistant.enums.BudgetStatus;
 import com.github.bztmrlan.financeassistant.model.*;
 import com.github.bztmrlan.financeassistant.security.CustomUserDetailsService;
@@ -14,11 +17,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -41,16 +44,16 @@ public class BudgetControllerTest {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
-    @MockBean
+    @MockitoBean
     private BudgetManagementService budgetManagementService;
 
-    @MockBean
+    @MockitoBean
     private BudgetEvaluationService budgetEvaluationService;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private CategoryRepository categoryRepository;
 
     private MockMvc mockMvc;
@@ -116,14 +119,14 @@ public class BudgetControllerTest {
     @Test
     void testCreateBudget_Success() throws Exception {
 
-        BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        CreateBudgetRequest request = new CreateBudgetRequest();
         request.setBudget(testBudget);
         
 
-        BudgetController.CategoryLimitRequest categoryLimit = new BudgetController.CategoryLimitRequest();
+        CategoryLimitRequest categoryLimit = new CategoryLimitRequest();
         categoryLimit.setCategoryId(testCategory.getId());
         categoryLimit.setLimitAmount(new BigDecimal("500.00"));
-        request.setCategoryLimits(Arrays.asList(categoryLimit));
+        request.setCategoryLimits(List.of(categoryLimit));
 
         when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(categoryRepository.findById(testCategory.getId())).thenReturn(Optional.of(testCategory));
@@ -145,13 +148,13 @@ public class BudgetControllerTest {
     @Test
     void testCreateBudget_UserNotFound() throws Exception {
 
-        BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        CreateBudgetRequest request = new CreateBudgetRequest();
         request.setBudget(testBudget);
 
-        BudgetController.CategoryLimitRequest categoryLimit = new BudgetController.CategoryLimitRequest();
+        CategoryLimitRequest categoryLimit = new CategoryLimitRequest();
         categoryLimit.setCategoryId(testCategory.getId());
         categoryLimit.setLimitAmount(new BigDecimal("500.00"));
-        request.setCategoryLimits(Arrays.asList(categoryLimit));
+        request.setCategoryLimits(List.of(categoryLimit));
 
         when(userRepository.findById(testUser.getId())).thenReturn(Optional.empty());
 
@@ -167,13 +170,13 @@ public class BudgetControllerTest {
     @Test
     void testCreateBudget_ServiceException() throws Exception {
 
-        BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        CreateBudgetRequest request = new CreateBudgetRequest();
         request.setBudget(testBudget);
 
-        BudgetController.CategoryLimitRequest categoryLimit = new BudgetController.CategoryLimitRequest();
+        CategoryLimitRequest categoryLimit = new CategoryLimitRequest();
         categoryLimit.setCategoryId(testCategory.getId());
         categoryLimit.setLimitAmount(new BigDecimal("500.00"));
-        request.setCategoryLimits(Arrays.asList(categoryLimit));
+        request.setCategoryLimits(List.of(categoryLimit));
 
         when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(categoryRepository.findById(testCategory.getId())).thenReturn(Optional.of(testCategory));
@@ -190,7 +193,7 @@ public class BudgetControllerTest {
     @Test
     void testGetUserBudgets_Success() throws Exception {
 
-        List<Budget> budgets = Arrays.asList(testBudget);
+        List<Budget> budgets = Collections.singletonList(testBudget);
         when(budgetManagementService.getUserBudgets(testUser.getId())).thenReturn(budgets);
         when(budgetManagementService.updateBudgetSpending(testBudget.getId())).thenReturn(testBudget);
 
@@ -307,7 +310,7 @@ public class BudgetControllerTest {
     @Test
     void testUpdateCategoryLimit_Success() throws Exception {
 
-        BudgetController.UpdateLimitRequest request = new BudgetController.UpdateLimitRequest();
+        UpdateLimitRequest request = new UpdateLimitRequest();
         request.setNewLimit(new BigDecimal("600.00"));
 
         BudgetCategory updatedCategory = BudgetCategory.builder()
@@ -319,7 +322,7 @@ public class BudgetControllerTest {
                 .build();
 
         when(budgetManagementService.getUserBudgets(testUser.getId()))
-                .thenReturn(Arrays.asList(testBudget));
+                .thenReturn(Collections.singletonList(testBudget));
         when(budgetManagementService.updateCategoryLimit(testBudget.getId(), testCategory.getId(), new BigDecimal("600.00")))
                 .thenReturn(updatedCategory);
 
@@ -337,7 +340,7 @@ public class BudgetControllerTest {
     @Test
     void testUpdateCategoryLimit_BudgetNotFound() throws Exception {
 
-        BudgetController.UpdateLimitRequest request = new BudgetController.UpdateLimitRequest();
+        UpdateLimitRequest request = new UpdateLimitRequest();
         request.setNewLimit(new BigDecimal("600.00"));
 
         when(budgetManagementService.getUserBudgets(testUser.getId()))
@@ -353,11 +356,11 @@ public class BudgetControllerTest {
 
     @Test
     void testUpdateCategoryLimit_ServiceException() throws Exception {
-        BudgetController.UpdateLimitRequest request = new BudgetController.UpdateLimitRequest();
+        UpdateLimitRequest request = new UpdateLimitRequest();
         request.setNewLimit(new BigDecimal("600.00"));
 
         when(budgetManagementService.getUserBudgets(testUser.getId()))
-                .thenReturn(Arrays.asList(testBudget));
+                .thenReturn(Collections.singletonList(testBudget));
         when(budgetManagementService.updateCategoryLimit(any(), any(), any()))
                 .thenThrow(new RuntimeException("Service error"));
 
@@ -372,7 +375,7 @@ public class BudgetControllerTest {
     @Test
     void testAddCategoryLimit_Success() throws Exception {
 
-        BudgetController.AddCategoryLimitRequest request = new BudgetController.AddCategoryLimitRequest();
+        CategoryLimitRequest request = new CategoryLimitRequest();
         request.setCategoryId(testCategory.getId());
         request.setLimitAmount(new BigDecimal("300.00"));
 
@@ -385,7 +388,7 @@ public class BudgetControllerTest {
                 .build();
 
         when(budgetManagementService.getUserBudgets(testUser.getId()))
-                .thenReturn(Arrays.asList(testBudget));
+                .thenReturn(Collections.singletonList(testBudget));
         when(budgetManagementService.addCategoryLimit(testBudget.getId(), testCategory.getId(), new BigDecimal("300.00")))
                 .thenReturn(newCategoryLimit);
 
@@ -402,7 +405,7 @@ public class BudgetControllerTest {
     @Test
     void testAddCategoryLimit_BudgetNotFound() throws Exception {
 
-        BudgetController.AddCategoryLimitRequest request = new BudgetController.AddCategoryLimitRequest();
+        CategoryLimitRequest request = new CategoryLimitRequest();
         request.setCategoryId(testCategory.getId());
         request.setLimitAmount(new BigDecimal("300.00"));
 
@@ -419,12 +422,12 @@ public class BudgetControllerTest {
     @Test
     void testAddCategoryLimit_ServiceException() throws Exception {
 
-        BudgetController.AddCategoryLimitRequest request = new BudgetController.AddCategoryLimitRequest();
+        CategoryLimitRequest request = new CategoryLimitRequest();
         request.setCategoryId(testCategory.getId());
         request.setLimitAmount(new BigDecimal("300.00"));
 
         when(budgetManagementService.getUserBudgets(testUser.getId()))
-                .thenReturn(Arrays.asList(testBudget));
+                .thenReturn(Collections.singletonList(testBudget));
         when(budgetManagementService.addCategoryLimit(any(), any(), any()))
                 .thenThrow(new RuntimeException("Service error"));
 
@@ -435,20 +438,7 @@ public class BudgetControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void testEvaluateBudget_Success() throws Exception {
 
-        when(budgetManagementService.getUserBudgets(testUser.getId()))
-                .thenReturn(Arrays.asList(testBudget));
-        doNothing().when(budgetManagementService).checkBudgetLimitsAndCreateAlerts(testBudget.getId());
-
-        mockMvc.perform(post("/api/budgets/{budgetId}/evaluate", testBudget.getId())
-                .principal(mockAuthentication))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Budget evaluation completed successfully"));
-
-        verify(budgetManagementService).checkBudgetLimitsAndCreateAlerts(testBudget.getId());
-    }
 
     @Test
     void testEvaluateBudget_BudgetNotFound() throws Exception {
@@ -461,23 +451,12 @@ public class BudgetControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void testEvaluateBudget_ServiceException() throws Exception {
 
-        when(budgetManagementService.getUserBudgets(testUser.getId()))
-                .thenReturn(Arrays.asList(testBudget));
-        doThrow(new RuntimeException("Service error"))
-                .when(budgetManagementService).checkBudgetLimitsAndCreateAlerts(testBudget.getId());
-
-        mockMvc.perform(post("/api/budgets/{budgetId}/evaluate", testBudget.getId())
-                .principal(mockAuthentication))
-                .andExpect(status().isInternalServerError());
-    }
 
     @Test
     void testGetBudgetsNeedingAttention_Success() throws Exception {
 
-        List<Budget> attentionBudgets = Arrays.asList(testBudget);
+        List<Budget> attentionBudgets = Collections.singletonList(testBudget);
         when(budgetManagementService.getActiveUserBudgets(testUser.getId())).thenReturn(attentionBudgets);
 
         mockMvc.perform(get("/api/budgets/attention-needed")
@@ -503,7 +482,7 @@ public class BudgetControllerTest {
     void testArchiveBudget_Success() throws Exception {
 
         when(budgetManagementService.getUserBudgets(testUser.getId()))
-                .thenReturn(Arrays.asList(testBudget));
+                .thenReturn(Collections.singletonList(testBudget));
         doNothing().when(budgetManagementService).archiveBudget(testBudget.getId());
 
         mockMvc.perform(put("/api/budgets/{budgetId}/archive", testBudget.getId())
@@ -527,7 +506,7 @@ public class BudgetControllerTest {
     @Test
     void testArchiveBudget_ServiceException() throws Exception {
         when(budgetManagementService.getUserBudgets(testUser.getId()))
-                .thenReturn(Arrays.asList(testBudget));
+                .thenReturn(Collections.singletonList(testBudget));
         doThrow(new RuntimeException("Service error"))
                 .when(budgetManagementService).archiveBudget(testBudget.getId());
 

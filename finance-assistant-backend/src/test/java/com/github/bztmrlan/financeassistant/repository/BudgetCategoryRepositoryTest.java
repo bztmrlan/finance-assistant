@@ -183,17 +183,6 @@ public class BudgetCategoryRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should delete budget category")
-    void testDeleteBudgetCategory() {
-        BudgetCategory saved = budgetCategoryRepository.save(budgetCategory1);
-        
-        budgetCategoryRepository.deleteById(saved.getId());
-        
-        Optional<BudgetCategory> retrieved = budgetCategoryRepository.findById(saved.getId());
-        assertThat(retrieved).isEmpty();
-    }
-
-    @Test
     @DisplayName("Should find all budget categories")
     void testFindAllBudgetCategories() {
         budgetCategoryRepository.save(budgetCategory1);

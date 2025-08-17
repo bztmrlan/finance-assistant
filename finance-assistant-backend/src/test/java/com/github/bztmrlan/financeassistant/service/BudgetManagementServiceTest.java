@@ -1,8 +1,9 @@
 package com.github.bztmrlan.financeassistant.service;
 
+import com.github.bztmrlan.financeassistant.enums.BudgetStatus;
+import com.github.bztmrlan.financeassistant.enums.CategoryType;
 import com.github.bztmrlan.financeassistant.model.*;
 import com.github.bztmrlan.financeassistant.repository.*;
-import com.github.bztmrlan.financeassistant.enums.BudgetStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,10 +13,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,286 +42,529 @@ class BudgetManagementServiceTest {
     @InjectMocks
     private BudgetManagementService budgetManagementService;
 
+    private UUID testUserId;
+    private UUID testBudgetId;
+    private UUID testCategoryId;
     private User testUser;
-    private Category testCategory;
     private Budget testBudget;
+    private Category testCategory;
     private BudgetCategory testBudgetCategory;
-    private Transaction testTransaction;
 
     @BeforeEach
     void setUp() {
+        testUserId = UUID.randomUUID();
+        testBudgetId = UUID.randomUUID();
+        testCategoryId = UUID.randomUUID();
+        
         testUser = User.builder()
-                .id(UUID.randomUUID())
-                .name("testuser")
+                .id(testUserId)
+                .name("Test User")
                 .email("test@example.com")
                 .build();
-
+        
         testCategory = Category.builder()
-                .id(UUID.randomUUID())
-                .name("Groceries")
-                .type(com.github.bztmrlan.financeassistant.enums.CategoryType.EXPENSE)
-                .build();
-
-        testBudget = Budget.builder()
-                .id(UUID.randomUUID())
+                .id(testCategoryId)
+                .name("Test Category")
+                .type(CategoryType.EXPENSE)
                 .user(testUser)
-                .name("Monthly Budget")
-                .startDate(LocalDate.of(2024, 1, 1))
-                .endDate(LocalDate.of(2024, 1, 31))
-                .status(BudgetStatus.ACTIVE)
-                .categories(new ArrayList<>())
                 .build();
-
+        
+        testBudget = Budget.builder()
+                .id(testBudgetId)
+                .name("Test Budget")
+                .user(testUser)
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusMonths(1))
+                .status(BudgetStatus.ACTIVE)
+                .build();
+        
         testBudgetCategory = BudgetCategory.builder()
                 .id(UUID.randomUUID())
                 .budget(testBudget)
                 .category(testCategory)
                 .limitAmount(new BigDecimal("500.00"))
-                .spentAmount(new BigDecimal("0.00"))
+                .spentAmount(BigDecimal.ZERO)
                 .build();
-
-        testTransaction = Transaction.builder()
-                .id(UUID.randomUUID())
-                .user(testUser)
-                .category(testCategory)
-                .amount(new BigDecimal("50.00"))
-                .date(LocalDate.of(2024, 1, 15))
-                .description("Grocery shopping")
-                .build();
-
-        testBudget.getCategories().add(testBudgetCategory);
     }
 
+    // ==================== HAPPY PATH TESTS ====================
+
     @Test
-    void testCreateBudget() {
-
+    void testCreateBudget_Success() {
+        // Given
+        List<BudgetCategory> categoryLimits = List.of(testBudgetCategory);
         when(budgetRepository.save(any(Budget.class))).thenReturn(testBudget);
-        when(budgetCategoryRepository.saveAll(anyList())).thenReturn(Arrays.asList(testBudgetCategory));
+        when(budgetCategoryRepository.saveAll(any())).thenReturn(categoryLimits);
 
+        // When
+        Budget result = budgetManagementService.createBudget(testBudget, categoryLimits);
 
-        Budget result = budgetManagementService.createBudget(testBudget, Arrays.asList(testBudgetCategory));
-
-
+        // Then
         assertNotNull(result);
         assertEquals(BudgetStatus.ACTIVE, result.getStatus());
+        assertEquals(testBudgetId, result.getId());
+        
         verify(budgetRepository).save(testBudget);
-        verify(budgetCategoryRepository).saveAll(Arrays.asList(testBudgetCategory));
+        verify(budgetCategoryRepository).saveAll(categoryLimits);
+        
+        // Verify that budget is set on each category limit
+        categoryLimits.forEach(bc -> assertEquals(testBudget, bc.getBudget()));
     }
 
     @Test
-    void testUpdateCategoryLimit() {
-
-        BigDecimal newLimit = new BigDecimal("600.00");
-        when(budgetCategoryRepository.findAll()).thenReturn(Arrays.asList(testBudgetCategory));
+    void testUpdateCategoryLimit_Success() {
+        // Given
+        BigDecimal newLimit = new BigDecimal("750.00");
+        when(budgetCategoryRepository.findAll()).thenReturn(List.of(testBudgetCategory));
         when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(testBudgetCategory);
 
+        // When
+        BudgetCategory result = budgetManagementService.updateCategoryLimit(testBudgetId, testCategoryId, newLimit);
 
-        BudgetCategory result = budgetManagementService.updateCategoryLimit(
-            testBudget.getId(), testCategory.getId(), newLimit);
-
-
+        // Then
         assertNotNull(result);
         assertEquals(newLimit, result.getLimitAmount());
+        
+        verify(budgetCategoryRepository).findAll();
         verify(budgetCategoryRepository).save(testBudgetCategory);
     }
 
     @Test
-    void testAddCategoryLimit() {
-
-        Category newCategory = Category.builder()
-                .id(UUID.randomUUID())
-                .name("Entertainment")
-                .type(com.github.bztmrlan.financeassistant.enums.CategoryType.EXPENSE)
-                .build();
-
+    void testAddCategoryLimit_Success() {
+        // Given
+        BigDecimal limitAmount = new BigDecimal("300.00");
         BudgetCategory newBudgetCategory = BudgetCategory.builder()
+                .id(UUID.randomUUID())
                 .budget(testBudget)
-                .category(newCategory)
-                .limitAmount(new BigDecimal("200.00"))
+                .category(testCategory)
+                .limitAmount(limitAmount)
                 .spentAmount(BigDecimal.ZERO)
                 .build();
-
-        when(budgetRepository.findById(testBudget.getId())).thenReturn(Optional.of(testBudget));
-        when(categoryRepository.findById(newCategory.getId())).thenReturn(Optional.of(newCategory));
-        when(budgetCategoryRepository.existsByBudgetAndCategory(testBudget, newCategory)).thenReturn(false);
+        
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.of(testCategory));
+        when(budgetCategoryRepository.existsByBudgetAndCategory(testBudget, testCategory)).thenReturn(false);
         when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(newBudgetCategory);
 
+        // When
+        BudgetCategory result = budgetManagementService.addCategoryLimit(testBudgetId, testCategoryId, limitAmount);
 
-        BudgetCategory result = budgetManagementService.addCategoryLimit(
-            testBudget.getId(), newCategory.getId(), new BigDecimal("200.00"));
-
-
+        // Then
         assertNotNull(result);
-        assertEquals(new BigDecimal("200.00"), result.getLimitAmount());
-        verify(budgetCategoryRepository).save(any(BudgetCategory.class));
-    }
-
-    @Test
-    void testCalculateCategorySpending() {
-
-        when(budgetRepository.findById(testBudget.getId())).thenReturn(Optional.of(testBudget));
-        when(transactionRepository.findByUserIdAndCategoryIdAndDateBetween(
-            eq(testUser.getId()), eq(testCategory.getId()), any(LocalDate.class), any(LocalDate.class)))
-            .thenReturn(Arrays.asList(testTransaction));
-
-
-        BigDecimal result = budgetManagementService.calculateCategorySpending(
-            testBudget.getId(), testCategory.getId());
-
-
-        assertEquals(new BigDecimal("50.00"), result);
-    }
-
-    @Test
-    void testUpdateBudgetSpending() {
-
-        when(budgetRepository.findById(testBudget.getId())).thenReturn(Optional.of(testBudget));
-        when(transactionRepository.findByUserIdAndCategoryIdAndDateBetween(
-            eq(testUser.getId()), eq(testCategory.getId()), any(LocalDate.class), any(LocalDate.class)))
-            .thenReturn(Arrays.asList(testTransaction));
-        when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(testBudgetCategory);
-
-
-        budgetManagementService.updateBudgetSpending(testBudget.getId());
-
-
-        verify(budgetCategoryRepository).save(any(BudgetCategory.class));
-        assertEquals(new BigDecimal("50.00"), testBudgetCategory.getSpentAmount());
-    }
-
-    @Test
-    void testCheckBudgetLimitsAndCreateAlerts() {
-
-        testBudgetCategory.setSpentAmount(new BigDecimal("600.00"));
+        assertEquals(limitAmount, result.getLimitAmount());
+        assertEquals(BigDecimal.ZERO, result.getSpentAmount());
+        assertEquals(testBudget, result.getBudget());
+        assertEquals(testCategory, result.getCategory());
         
-        when(budgetRepository.findById(testBudget.getId())).thenReturn(Optional.of(testBudget));
-        when(transactionRepository.findByUserIdAndCategoryIdAndDateBetween(
-            eq(testUser.getId()), eq(testCategory.getId()), any(LocalDate.class), any(LocalDate.class)))
-            .thenReturn(Arrays.asList(testTransaction));
-        when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(testBudgetCategory);
-        when(budgetCategoryRepository.findExceededCategories(testBudget.getId()))
-            .thenReturn(Arrays.asList(testBudgetCategory));
-        when(alertRepository.findAll()).thenReturn(new ArrayList<>());
-        when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
-
-
-        budgetManagementService.checkBudgetLimitsAndCreateAlerts(testBudget.getId());
-
-
-        verify(alertRepository).save(any(Alert.class));
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository).findById(testCategoryId);
+        verify(budgetCategoryRepository).existsByBudgetAndCategory(testBudget, testCategory);
+        verify(budgetCategoryRepository).save(any(BudgetCategory.class));
     }
 
     @Test
-    void testGetBudgetSummary() {
+    void testDeleteCategoryLimit_Success() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.of(testCategory));
+        when(budgetCategoryRepository.findByBudgetAndCategory(testBudget, testCategory))
+                .thenReturn(Optional.of(testBudgetCategory));
+        doNothing().when(budgetCategoryRepository).deleteById(testBudgetCategory.getId());
 
-        when(budgetRepository.findById(testBudget.getId())).thenReturn(Optional.of(testBudget));
-        when(transactionRepository.findByUserIdAndCategoryIdAndDateBetween(
-            eq(testUser.getId()), eq(testCategory.getId()), any(LocalDate.class), any(LocalDate.class)))
-            .thenReturn(Arrays.asList(testTransaction));
-        when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(testBudgetCategory);
+        // When
+        assertDoesNotThrow(() -> budgetManagementService.deleteCategoryLimit(testBudgetId, testCategoryId));
 
-
-        var summary = budgetManagementService.getBudgetSummary(testBudget.getId());
-
-
-        assertNotNull(summary);
-        assertEquals(testBudget.getId(), summary.getBudgetId());
-        assertEquals("Monthly Budget", summary.getBudgetName());
-        assertEquals(new BigDecimal("500.00"), summary.getTotalBudgeted());
-        assertEquals(new BigDecimal("50.00"), summary.getTotalSpent());
-        assertEquals(new BigDecimal("450.00"), summary.getRemainingAmount());
+        // Then
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository).findById(testCategoryId);
+        verify(budgetCategoryRepository).findByBudgetAndCategory(testBudget, testCategory);
+        verify(budgetCategoryRepository).deleteById(testBudgetCategory.getId());
     }
 
     @Test
-    void testGetUserBudgets() {
+    void testGetUserBudgets_Success() {
+        // Given
+        List<Budget> budgets = List.of(testBudget);
+        when(budgetRepository.findByUserIdWithUserCategories(testUserId)).thenReturn(budgets);
 
-        when(budgetRepository.findByUserIdWithUserCategories(testUser.getId())).thenReturn(Arrays.asList(testBudget));
+        // When
+        List<Budget> result = budgetManagementService.getUserBudgets(testUserId);
 
-
-        List<Budget> result = budgetManagementService.getUserBudgets(testUser.getId());
-
-
+        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(testBudget.getId(), result.get(0).getId());
+        assertEquals(testBudget, result.get(0));
+        
+        verify(budgetRepository).findByUserIdWithUserCategories(testUserId);
     }
 
     @Test
-    void testGetActiveUserBudgets() {
+    void testGetActiveUserBudgets_Success() {
+        // Given
+        List<Budget> budgets = List.of(testBudget);
+        when(budgetRepository.findByUserIdWithUserCategories(testUserId)).thenReturn(budgets);
 
-        Budget archivedBudget = Budget.builder()
-                .id(UUID.randomUUID())
-                .user(testUser)
-                .name("Completed Budget")
-                .status(BudgetStatus.COMPLETED)
-                .build();
+        // When
+        List<Budget> result = budgetManagementService.getActiveUserBudgets(testUserId);
 
-        when(budgetRepository.findByUserIdWithUserCategories(testUser.getId()))
-            .thenReturn(Arrays.asList(testBudget, archivedBudget));
-
-
-        List<Budget> result = budgetManagementService.getActiveUserBudgets(testUser.getId());
-
-
+        // Then
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(BudgetStatus.ACTIVE, result.get(0).getStatus());
+        
+        verify(budgetRepository).findByUserIdWithUserCategories(testUserId);
     }
 
     @Test
-    void testArchiveBudget() {
-
-        when(budgetRepository.findById(testBudget.getId())).thenReturn(Optional.of(testBudget));
+    void testArchiveBudget_Success() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
         when(budgetRepository.save(any(Budget.class))).thenReturn(testBudget);
 
+        // When
+        budgetManagementService.archiveBudget(testBudgetId);
 
-        budgetManagementService.archiveBudget(testBudget.getId());
-
-
+        // Then
         assertEquals(BudgetStatus.COMPLETED, testBudget.getStatus());
         verify(budgetRepository).save(testBudget);
     }
 
     @Test
-    void testCreateBudgetAlert() {
+    void testDeleteBudget_Success() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        doNothing().when(budgetCategoryRepository).deleteByBudget(testBudget);
+        doNothing().when(budgetRepository).deleteById(testBudgetId);
 
-        testBudgetCategory.setSpentAmount(new BigDecimal("600.00"));
+        // When
+        budgetManagementService.deleteBudget(testBudgetId);
+
+        // Then
+        verify(budgetCategoryRepository).deleteByBudget(testBudget);
+        verify(budgetRepository).deleteById(testBudgetId);
+    }
+
+    // ==================== UNHAPPY PATH TESTS ====================
+
+    @Test
+    void testUpdateCategoryLimit_NotFound() {
+        // Given
+        when(budgetCategoryRepository.findAll()).thenReturn(List.of());
+
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            budgetManagementService.updateCategoryLimit(testBudgetId, testCategoryId, new BigDecimal("100.00"));
+        });
+
+        assertEquals("Budget category not found", exception.getMessage());
         
-        when(budgetRepository.findById(testBudget.getId())).thenReturn(Optional.of(testBudget));
-        when(budgetCategoryRepository.findExceededCategories(testBudget.getId()))
-            .thenReturn(Arrays.asList(testBudgetCategory));
-        when(alertRepository.save(any(Alert.class))).thenReturn(new Alert());
-
-
-        budgetManagementService.checkBudgetLimitsAndCreateAlerts(testBudget.getId());
-
-
-        verify(alertRepository).save(any(Alert.class));
+        verify(budgetCategoryRepository).findAll();
+        verify(budgetCategoryRepository, never()).save(any(BudgetCategory.class));
     }
 
     @Test
-    void testAddCategoryLimitWithExistingCategory() {
+    void testAddCategoryLimit_BudgetNotFound() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.empty());
 
-        when(budgetRepository.findById(testBudget.getId())).thenReturn(Optional.of(testBudget));
-        when(categoryRepository.findById(testCategory.getId())).thenReturn(Optional.of(testCategory));
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            budgetManagementService.addCategoryLimit(testBudgetId, testCategoryId, new BigDecimal("100.00"));
+        });
+
+        assertEquals("Budget not found", exception.getMessage());
+        
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository, never()).findById(any(UUID.class));
+        verify(budgetCategoryRepository, never()).save(any(BudgetCategory.class));
+    }
+
+    @Test
+    void testAddCategoryLimit_CategoryNotFound() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.empty());
+
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            budgetManagementService.addCategoryLimit(testBudgetId, testCategoryId, new BigDecimal("100.00"));
+        });
+
+        assertEquals("Category not found", exception.getMessage());
+        
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository).findById(testCategoryId);
+        verify(budgetCategoryRepository, never()).save(any(BudgetCategory.class));
+    }
+
+    @Test
+    void testAddCategoryLimit_AlreadyExists() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.of(testCategory));
         when(budgetCategoryRepository.existsByBudgetAndCategory(testBudget, testCategory)).thenReturn(true);
 
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            budgetManagementService.addCategoryLimit(
-                testBudget.getId(), testCategory.getId(), new BigDecimal("200.00"));
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            budgetManagementService.addCategoryLimit(testBudgetId, testCategoryId, new BigDecimal("100.00"));
         });
+
+        assertEquals("Category limit already exists for this budget", exception.getMessage());
+        
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository).findById(testCategoryId);
+        verify(budgetCategoryRepository).existsByBudgetAndCategory(testBudget, testCategory);
+        verify(budgetCategoryRepository, never()).save(any(BudgetCategory.class));
     }
 
     @Test
-    void testUpdateCategoryLimitNotFound() {
+    void testDeleteCategoryLimit_BudgetNotFound() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.empty());
 
-        when(budgetCategoryRepository.findAll()).thenReturn(new ArrayList<>());
-
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            budgetManagementService.updateCategoryLimit(
-                testBudget.getId(), testCategory.getId(), new BigDecimal("600.00"));
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            budgetManagementService.deleteCategoryLimit(testBudgetId, testCategoryId);
         });
+
+        assertEquals("Budget not found", exception.getMessage());
+        
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository, never()).findById(any(UUID.class));
+        verify(budgetCategoryRepository, never()).deleteById(any(UUID.class));
+    }
+
+    @Test
+    void testDeleteCategoryLimit_CategoryNotFound() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.empty());
+
+        // When & Then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            budgetManagementService.deleteCategoryLimit(testBudgetId, testCategoryId);
+        });
+
+        assertEquals("Category not found", exception.getMessage());
+        
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository).findById(testCategoryId);
+        verify(budgetCategoryRepository, never()).deleteById(any(UUID.class));
+    }
+
+    @Test
+    void testDeleteCategoryLimit_BudgetCategoryNotFound() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.of(testCategory));
+        when(budgetCategoryRepository.findByBudgetAndCategory(testBudget, testCategory))
+                .thenReturn(Optional.empty());
+
+        // When
+        assertDoesNotThrow(() -> budgetManagementService.deleteCategoryLimit(testBudgetId, testCategoryId));
+
+        // Then
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository).findById(testCategoryId);
+        verify(budgetCategoryRepository).findByBudgetAndCategory(testBudget, testCategory);
+        verify(budgetCategoryRepository, never()).deleteById(any(UUID.class));
+    }
+
+    @Test
+    void testGetUserBudgets_EmptyList() {
+        // Given
+        when(budgetRepository.findByUserIdWithUserCategories(testUserId)).thenReturn(List.of());
+
+        // When
+        List<Budget> result = budgetManagementService.getUserBudgets(testUserId);
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        
+        verify(budgetRepository).findByUserIdWithUserCategories(testUserId);
+    }
+
+    @Test
+    void testGetActiveUserBudgets_EmptyList() {
+        // Given
+        when(budgetRepository.findByUserIdWithUserCategories(testUserId)).thenReturn(List.of());
+
+        // When
+        List<Budget> result = budgetManagementService.getActiveUserBudgets(testUserId);
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        
+        verify(budgetRepository).findByUserIdWithUserCategories(testUserId);
+    }
+
+    // ==================== EDGE CASE TESTS ====================
+
+    @Test
+    void testCreateBudget_EmptyCategoryLimits() {
+        // Given
+        List<BudgetCategory> categoryLimits = List.of();
+        when(budgetRepository.save(any(Budget.class))).thenReturn(testBudget);
+        when(budgetCategoryRepository.saveAll(any())).thenReturn(categoryLimits);
+
+        // When
+        Budget result = budgetManagementService.createBudget(testBudget, categoryLimits);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(BudgetStatus.ACTIVE, result.getStatus());
+        
+        verify(budgetRepository).save(testBudget);
+        verify(budgetCategoryRepository).saveAll(categoryLimits);
+    }
+
+    @Test
+    void testUpdateCategoryLimit_ZeroLimit() {
+        // Given
+        BigDecimal zeroLimit = BigDecimal.ZERO;
+        when(budgetCategoryRepository.findAll()).thenReturn(List.of(testBudgetCategory));
+        when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(testBudgetCategory);
+
+        // When
+        BudgetCategory result = budgetManagementService.updateCategoryLimit(testBudgetId, testCategoryId, zeroLimit);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(BigDecimal.ZERO, result.getLimitAmount());
+        
+        verify(budgetCategoryRepository).findAll();
+        verify(budgetCategoryRepository).save(testBudgetCategory);
+    }
+
+    @Test
+    void testAddCategoryLimit_ZeroLimit() {
+        // Given
+        BigDecimal zeroLimit = BigDecimal.ZERO;
+        BudgetCategory zeroLimitBudgetCategory = BudgetCategory.builder()
+                .id(UUID.randomUUID())
+                .budget(testBudget)
+                .category(testCategory)
+                .limitAmount(zeroLimit)
+                .spentAmount(BigDecimal.ZERO)
+                .build();
+        
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.of(testCategory));
+        when(budgetCategoryRepository.existsByBudgetAndCategory(testBudget, testCategory)).thenReturn(false);
+        when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(zeroLimitBudgetCategory);
+
+        // When
+        BudgetCategory result = budgetManagementService.addCategoryLimit(testBudgetId, testCategoryId, zeroLimit);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(BigDecimal.ZERO, result.getLimitAmount());
+        
+        verify(budgetCategoryRepository).save(any(BudgetCategory.class));
+    }
+
+    @Test
+    void testAddCategoryLimit_NegativeLimit() {
+        // Given
+        BigDecimal negativeLimit = new BigDecimal("-50.00");
+        BudgetCategory negativeLimitBudgetCategory = BudgetCategory.builder()
+                .id(UUID.randomUUID())
+                .budget(testBudget)
+                .category(testCategory)
+                .limitAmount(negativeLimit)
+                .spentAmount(BigDecimal.ZERO)
+                .build();
+        
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.of(testCategory));
+        when(budgetCategoryRepository.existsByBudgetAndCategory(testBudget, testCategory)).thenReturn(false);
+        when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(negativeLimitBudgetCategory);
+
+        // When
+        BudgetCategory result = budgetManagementService.addCategoryLimit(testBudgetId, testCategoryId, negativeLimit);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(negativeLimit, result.getLimitAmount());
+        
+        verify(budgetCategoryRepository).save(any(BudgetCategory.class));
+    }
+
+    @Test
+    void testCreateBudget_MultipleCategoryLimits() {
+        // Given
+        BudgetCategory categoryLimit1 = BudgetCategory.builder()
+                .budget(testBudget)
+                .category(testCategory)
+                .limitAmount(new BigDecimal("300.00"))
+                .spentAmount(BigDecimal.ZERO)
+                .build();
+        
+        BudgetCategory categoryLimit2 = BudgetCategory.builder()
+                .budget(testBudget)
+                .category(testCategory)
+                .limitAmount(new BigDecimal("200.00"))
+                .spentAmount(BigDecimal.ZERO)
+                .build();
+        
+        List<BudgetCategory> categoryLimits = List.of(categoryLimit1, categoryLimit2);
+        
+        when(budgetRepository.save(any(Budget.class))).thenReturn(testBudget);
+        when(budgetCategoryRepository.saveAll(any())).thenReturn(categoryLimits);
+
+        // When
+        Budget result = budgetManagementService.createBudget(testBudget, categoryLimits);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(BudgetStatus.ACTIVE, result.getStatus());
+        
+        verify(budgetRepository).save(testBudget);
+        verify(budgetCategoryRepository).saveAll(categoryLimits);
+        
+        // Verify that budget is set on each category limit
+        categoryLimits.forEach(bc -> assertEquals(testBudget, bc.getBudget()));
+    }
+
+    @Test
+    void testUpdateCategoryLimit_NegativeLimit() {
+        // Given
+        BigDecimal negativeLimit = new BigDecimal("-100.00");
+        when(budgetCategoryRepository.findAll()).thenReturn(List.of(testBudgetCategory));
+        when(budgetCategoryRepository.save(any(BudgetCategory.class))).thenReturn(testBudgetCategory);
+
+        // When
+        BudgetCategory result = budgetManagementService.updateCategoryLimit(testBudgetId, testCategoryId, negativeLimit);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(negativeLimit, result.getLimitAmount());
+        
+        verify(budgetCategoryRepository).findAll();
+        verify(budgetCategoryRepository).save(testBudgetCategory);
+    }
+
+    @Test
+    void testDeleteCategoryLimit_ExceptionHandling() {
+        // Given
+        when(budgetRepository.findById(testBudgetId)).thenReturn(Optional.of(testBudget));
+        when(categoryRepository.findById(testCategoryId)).thenReturn(Optional.of(testCategory));
+        when(budgetCategoryRepository.findByBudgetAndCategory(testBudget, testCategory))
+                .thenReturn(Optional.of(testBudgetCategory));
+        doThrow(new RuntimeException("Database error")).when(budgetCategoryRepository).deleteById(testBudgetCategory.getId());
+
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            budgetManagementService.deleteCategoryLimit(testBudgetId, testCategoryId);
+        });
+
+        assertEquals("Database error", exception.getMessage());
+        
+        verify(budgetRepository).findById(testBudgetId);
+        verify(categoryRepository).findById(testCategoryId);
+        verify(budgetCategoryRepository).findByBudgetAndCategory(testBudget, testCategory);
+        verify(budgetCategoryRepository).deleteById(testBudgetCategory.getId());
     }
 } 

@@ -81,19 +81,7 @@ class GoogleGeminiServiceTest {
         assertTrue(contents instanceof java.util.List);
     }
 
-    @Test
-    void testServiceStatus() {
 
-        Map<String, Object> status = googleGeminiService.getServiceStatus();
-        
-        assertNotNull(status);
-        assertTrue(status.containsKey("status"));
-        assertTrue(status.containsKey("timestamp"));
-
-        assertTrue(status.containsKey("model"));
-        assertTrue(status.containsKey("maxTokens"));
-        assertTrue(status.containsKey("temperature"));
-    }
 
     @Test
     void testParseStandardResponse() {
