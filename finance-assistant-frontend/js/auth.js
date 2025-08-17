@@ -135,7 +135,7 @@ async function handleLogin(e) {
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userName', data.name || data.userName || 'User'); // Store name from response
             
-            console.log('🔐 Stored userName:', data.name || data.userName || 'User');
+            console.log('🔐 Stored userName exists:', !!(data.name || data.userName));
             
             showMessage('Login successful! Redirecting...', 'success');
             
@@ -145,12 +145,48 @@ async function handleLogin(e) {
             }, 1500);
             
         } else {
-            showMessage(data.message || 'Login failed. Please check your credentials.', 'error');
+            // Handle HTTP error responses (4xx, 5xx)
+            let errorMessage = 'Login failed. Please try again.';
+            
+            if (response.status === 401) {
+                errorMessage = 'Invalid email or password. Please check your credentials.';
+            } else if (response.status === 400) {
+                errorMessage = 'Invalid request. Please check your input.';
+            } else if (response.status === 500) {
+                errorMessage = 'Server error. Please try again later.';
+            } else if (response.status === 404) {
+                errorMessage = 'Login service not found. Please contact support.';
+            }
+            
+            // Try to get more specific error message from response body
+            try {
+                const errorData = await response.json();
+                if (errorData.message) {
+                    errorMessage = errorData.message;
+                }
+            } catch (parseError) {
+                // If we can't parse the error response, use our default message
+                console.log('Could not parse error response, using default message');
+            }
+            
+            showMessage(errorMessage, 'error');
         }
         
     } catch (error) {
         console.error('Login error:', error);
-        showMessage('Network error. Please try again.', 'error');
+        
+        // Handle network-level errors (fetch failures, CORS, etc.)
+        let errorMessage = 'Network error. Please try again.';
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+        } else if (error.name === 'AbortError') {
+            errorMessage = 'Request was cancelled. Please try again.';
+        } else if (error.message.includes('CORS')) {
+            errorMessage = 'Cross-origin request blocked. Please contact support.';
+        }
+        
+        showMessage(errorMessage, 'error');
     } finally {
         showLoading(false);
     }
@@ -220,12 +256,46 @@ async function handleRegister(e) {
             }, 1500);
             
         } else {
-            showMessage(data.message || 'Registration failed. Please try again.', 'error');
+            // Handle HTTP error responses (4xx, 5xx)
+            let errorMessage = 'Registration failed. Please try again.';
+            
+            if (response.status === 400) {
+                if (data.message && data.message.includes('already exists')) {
+                    errorMessage = 'A user with this email already exists. Please use a different email or try logging in.';
+                } else {
+                    errorMessage = 'Invalid registration data. Please check your input.';
+                }
+            } else if (response.status === 401) {
+                errorMessage = 'Unauthorized. Please check your credentials.';
+            } else if (response.status === 500) {
+                errorMessage = 'Server error. Please try again later.';
+            } else if (response.status === 404) {
+                errorMessage = 'Registration service not found. Please contact support.';
+            }
+            
+            // Use backend message if available, otherwise use our default
+            if (data.message && !errorMessage.includes(data.message)) {
+                errorMessage = data.message;
+            }
+            
+            showMessage(errorMessage, 'error');
         }
         
     } catch (error) {
         console.error('Registration error:', error);
-        showMessage('Network error. Please try again.', 'error');
+        
+        // Handle network-level errors (fetch failures, CORS, etc.)
+        let errorMessage = 'Network error. Please try again.';
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+        } else if (error.name === 'AbortError') {
+            errorMessage = 'Request was cancelled. Please try again.';
+        } else if (error.message.includes('CORS')) {
+            errorMessage = 'Cross-origin request blocked. Please contact support.';
+        }
+        
+        showMessage(errorMessage, 'error');
     } finally {
         showLoading(false);
     }

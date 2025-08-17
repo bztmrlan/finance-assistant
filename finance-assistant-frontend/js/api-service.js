@@ -16,7 +16,6 @@ class ApiService {
     getAuthHeaders() {
         const token = localStorage.getItem('authToken'); // Use the same key as auth.js
         console.log('Getting auth headers, token exists:', !!token);
-        console.log('Token value:', token ? token.substring(0, 20) + '...' : 'none');
         
         return {
             'Authorization': `Bearer ${token}`,
@@ -213,7 +212,7 @@ class ApiService {
                 console.log('🔐 Token verification successful');
                 return true;
             } else {
-                console.log('🔐 Token verification failed:', response.status);
+                console.log('🔐 Token verification failed');
                 return false;
             }
         } catch (error) {
@@ -305,7 +304,7 @@ class ApiService {
     }
 
     async updateBudget(budgetId, budgetData) {
-        console.log('🔧 updateBudget called with:', { budgetId, budgetData });
+        console.log('🔧 updateBudget called');
         
         const endpoint = `/api/budgets/${budgetId}`;
         
@@ -329,7 +328,7 @@ class ApiService {
     }
 
     async updateCategoryLimit(budgetId, categoryId, newLimit) {
-        console.log('🔧 updateCategoryLimit called with:', { budgetId, categoryId, newLimit });
+        console.log('🔧 updateCategoryLimit called');
         console.log('🔧 CONFIG.ENDPOINTS.BUDGET_CATEGORY_LIMIT:', window.CONFIG?.ENDPOINTS?.BUDGET_CATEGORY_LIMIT);
         
         const endpoint = {
@@ -380,7 +379,7 @@ class ApiService {
     }
 
     async deleteCategoryFromBudget(budgetId, categoryId) {
-        console.log('🗑️ deleteCategoryFromBudget called with:', { budgetId, categoryId });
+        console.log('🗑️ deleteCategoryFromBudget called');
         
         const endpoint = `/api/budgets/${budgetId}/categories/${categoryId}`;
         console.log('🗑️ DELETE endpoint:', endpoint);
@@ -456,7 +455,7 @@ class ApiService {
     }
 
     async deleteBudget(budgetId) {
-        console.log('🗑️ Deleting budget:', budgetId);
+        console.log('🗑️ Deleting budget');
         
         // Use the standard DELETE endpoint for budgets
         const endpoint = `/api/budgets/${budgetId}`;
@@ -486,7 +485,7 @@ class ApiService {
     }
 
     async recalculateBudgetSpending(budgetId) {
-        console.log('🔄 Recalculating spending for budget:', budgetId);
+        console.log('🔄 Recalculating spending for budget');
         
         // Use the same endpoint but with a specific budget ID
         let endpoint = `/api/budgets/${budgetId}/recalculate-spending`;

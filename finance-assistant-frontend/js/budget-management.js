@@ -30,8 +30,7 @@ class BudgetManager {
             console.log('🔧 CONFIG available after timeout:', !!window.CONFIG);
             console.log('🔧 apiService available after timeout:', !!window.apiService);
             
-            // Update status display
-            BudgetManager.showStatusInUI();
+
         }, 2000); // Wait 2 seconds for everything to initialize
     }
 
@@ -54,10 +53,11 @@ class BudgetManager {
         // Start readiness checker
         this.startReadinessChecker();
         
-        // Show status in UI for debugging
-        setTimeout(() => {
-            BudgetManager.showStatusInUI();
-        }, 1000);
+        // Set up event listeners for category limit inputs
+        this.setupCategoryLimitListeners();
+        
+        // Set up event listeners for edit category limit inputs
+        this.setupEditCategoryLimitListeners();
     }
 
     setDefaultDates() {
@@ -79,7 +79,7 @@ class BudgetManager {
         const token = localStorage.getItem('authToken'); // Use the same key as auth.js
         const userEmail = localStorage.getItem('userEmail'); // Use the same key as auth.js
         console.log('Checking auth status, token exists:', !!token);
-        console.log('User email:', userEmail);
+        console.log('User email exists:', !!userEmail);
         
         // TEMPORARY DEBUG: Bypass authentication for testing
         if (window.location.search.includes('debug=true')) {
@@ -104,7 +104,7 @@ class BudgetManager {
     async verifyToken(token) {
         try {
             console.log('Verifying token...');
-            console.log('Token to verify:', token ? token.substring(0, 20) + '...' : 'none');
+            console.log('Token to verify:', !!token);
             console.log('API Service available:', !!window.apiService);
             
             if (!window.apiService) {
@@ -156,7 +156,7 @@ class BudgetManager {
         this.categories.forEach((cat, index) => {
             if (cat && cat.id && cat.name) {
                 validCategories++;
-                console.log(`✅ Category ${index + 1}: ${cat.name} (${cat.id})`);
+                console.log(`✅ Category ${index + 1}: ${cat.name}`);
             } else {
                 console.error(`❌ Invalid category ${index + 1}:`, cat);
             }
@@ -195,7 +195,7 @@ class BudgetManager {
                 if (categories.length > 0) {
                     console.log('Category details:');
                     categories.forEach((cat, index) => {
-                        console.log(`  ${index + 1}. ID: ${cat.id}, Name: ${cat.name}, Type: ${cat.type}`);
+                        console.log(`  ${index + 1}. Name: ${cat.name}, Type: ${cat.type}`);
                     });
                 }
                 
@@ -215,8 +215,7 @@ class BudgetManager {
             // Hide loading overlay on error
             this.hideLoadingOverlay();
             
-            // Update status display to show error
-            BudgetManager.showStatusInUI();
+
             
             // Check if it's an authentication error
             if (error.message && (error.message.includes('401') || error.message.includes('403'))) {
@@ -280,7 +279,7 @@ class BudgetManager {
                     option.textContent = category.name;
                     select.appendChild(option);
                     addedCount++;
-                    console.log(`Added option: ${category.name} (${category.id})`);
+                    console.log(`Added option: ${category.name}`);
                 } else {
                     console.warn('Invalid category data:', category);
                     skippedCount++;
@@ -307,8 +306,7 @@ class BudgetManager {
         // Hide loading overlay when categories are loaded
         this.hideLoadingOverlay();
         
-        // Update status display
-        BudgetManager.showStatusInUI();
+
     }
     
     // Update the state of category-related buttons based on availability
@@ -399,8 +397,7 @@ class BudgetManager {
                 this.updateCategoryButtonStates();
                 this.hideLoadingOverlay();
                 
-                // Update status display
-                BudgetManager.showStatusInUI();
+
                 
                 clearInterval(checkInterval);
             }
@@ -422,10 +419,8 @@ class BudgetManager {
             // Debug: Log spent amounts for each budget category
             if (budgets && budgets.length > 0) {
                 budgets.forEach((budget, budgetIndex) => {
-                    console.log(`🔍 Budget ${budgetIndex + 1}: "${budget.name}"`);
-                    console.log(`  💰 Total Budget Amount: $${budget.amount || 0}`);
-                    console.log(`  📊 Budget Amount Type: ${typeof budget.amount}`);
-                    console.log(`  📋 Category Count: ${budget.categoryLimits?.length || 0}`);
+                                console.log(`🔍 Budget ${budgetIndex + 1}: "${budget.name}"`);
+            console.log(`  📋 Category Count: ${budget.categoryLimits?.length || 0}`);
                     
                     if (budget.categoryLimits && budget.categoryLimits.length > 0) {
                         budget.categoryLimits.forEach((category, catIndex) => {
@@ -442,6 +437,10 @@ class BudgetManager {
             
             this.budgets = budgets || [];
             this.displayBudgets();
+            
+            // Update all budget amounts from category limits to ensure consistency
+            this.updateAllBudgetAmounts();
+            
             this.updateBudgetStats();
         } catch (error) {
             console.error('Error loading budgets:', error);
@@ -466,7 +465,7 @@ class BudgetManager {
         // Debug budget amounts
         console.log('🔍 Updating budget stats...');
         this.budgets.forEach((budget, index) => {
-            console.log(`  Budget ${index + 1}: "${budget.name}" - Amount: $${budget.amount || 0} (Type: ${typeof budget.amount})`);
+                            console.log(`  Budget ${index + 1}: "${budget.name}" - Amount updated`);
         });
         
         const totalBudgetAmount = this.budgets.reduce((sum, b) => {
@@ -523,15 +522,9 @@ class BudgetManager {
         let totalLimit = 0;
         
         if (budget.categoryLimits && budget.categoryLimits.length > 0) {
-            console.log(`🔍 Processing budget "${budget.name}" with ${budget.categoryLimits.length} categories:`, budget.categoryLimits);
+            console.log(`🔍 Processing budget "${budget.name}" with ${budget.categoryLimits.length} categories`);
             budget.categoryLimits.forEach(category => {
-                console.log(`📋 Category details:`, {
-                    id: category.id,
-                    categoryId: category.categoryId,
-                    categoryName: category.categoryName,
-                    limitAmount: category.limitAmount,
-                    spentAmount: category.spentAmount
-                });
+                console.log(`📋 Category processed: ${category.categoryName || 'Unknown'}`);
                 
                 const spent = category.spentAmount || 0;
                 const limit = category.limitAmount || 0;
@@ -561,18 +554,41 @@ class BudgetManager {
                     </div>
                 `;
             });
+        } else {
+            // Handle budgets without categories
+            console.log(`🔍 Processing budget "${budget.name}" with no categories`);
+            categoriesHtml = `
+                <div class="category-item no-categories">
+                    <div>
+                        <span class="category-name" style="color: #718096; font-style: italic;">No categories assigned</span>
+                        <div class="category-progress">
+                            <div class="category-progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="category-actions">
+                        <span class="category-amount" style="color: #718096;">$0.00 / $0.00</span>
+                    </div>
+                </div>
+            `;
         }
 
-        // Calculate overall budget progress
-        const overallProgress = budget.amount > 0 ? Math.min((totalSpent / budget.amount) * 100, 100) : 0;
+        // Calculate overall budget progress based on category limits
+        const overallProgress = totalLimit > 0 ? Math.min((totalSpent / totalLimit) * 100, 100) : 0;
         const overallProgressClass = this.getProgressClass(overallProgress);
+        
+        // Debug logging for percentage calculation
+                    console.log(`🔍 Budget "${budget.name}" percentage calculated: ${overallProgress.toFixed(1)}%`);
+        
+        // For budgets without categories, show a note
+        const noCategoriesNote = (!budget.categoryLimits || budget.categoryLimits.length === 0) ? 
+            '<div class="no-categories-note" style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin: 15px 0; text-align: center; color: #718096;"><i class="fas fa-info-circle"></i> This budget has no categories assigned yet. Add categories to start tracking spending.</div>' : '';
 
         // Format dates for display
         const startDate = budget.startDate ? new Date(budget.startDate).toLocaleDateString() : 'N/A';
         const endDate = budget.endDate ? new Date(budget.endDate).toLocaleDateString() : 'N/A';
 
         return `
-            <div class="budget-card">
+            <div class="budget-card" data-budget-id="${budget.id}">
                 <div class="budget-status ${statusClass} ${isOverBudget ? 'over-budget' : ''}">
                     ${isOverBudget ? '⚠️ Over Budget' : statusText}
                 </div>
@@ -580,7 +596,7 @@ class BudgetManager {
                 <div class="budget-title">${budget.name || 'Unnamed Budget'}</div>
                 ${budget.description ? `<div class="budget-description">${budget.description}</div>` : ''}
                 
-                <div class="budget-amount">$${budget.amount ? budget.amount.toFixed(2) : '0.00'}</div>
+                <div class="budget-amount">$${totalLimit > 0 ? totalLimit.toFixed(2) : '0.00'}</div>
                 <div class="budget-period">${startDate} - ${endDate}</div>
                 
                 <div class="budget-progress">
@@ -594,6 +610,8 @@ class BudgetManager {
                 </div>
                 
                 ${categoriesHtml ? `<div class="category-list">${categoriesHtml}</div>` : ''}
+                
+                ${noCategoriesNote}
                 
                 <div class="add-category-section">
                     <button class="add-category-btn" onclick="budgetManager.addCategoryToBudget('${budget.id}')" title="Add new category to this budget">
@@ -680,6 +698,10 @@ class BudgetManager {
                 this.resetCreateBudgetForm();
                 closeCreateBudgetModal();
                 await this.loadBudgets(); // Refresh the list
+                
+                // Update budget statistics to reflect the new budget
+                this.updateBudgetStats();
+                console.log(`✅ Budget created, stats updated`);
             }
         } catch (error) {
             console.error('Error creating budget:', error);
@@ -701,18 +723,12 @@ class BudgetManager {
     getCreateBudgetFormData() {
         const name = document.getElementById('budgetName').value.trim();
         const description = document.getElementById('budgetDescription').value.trim();
-        const amount = parseFloat(document.getElementById('budgetAmount').value);
         const period = document.getElementById('budgetPeriod').value;
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
 
-        if (!name || !amount || !period || !startDate || !endDate) {
+        if (!name || !period || !startDate || !endDate) {
             this.showMessage('Please fill in all required fields', 'error');
-            return null;
-        }
-
-        if (amount <= 0) {
-            this.showMessage('Budget amount must be greater than 0', 'error');
             return null;
         }
 
@@ -737,16 +753,27 @@ class BudgetManager {
             }
         });
 
+        // Allow budgets without categories initially
+        let totalAmount = 0;
         if (categoryLimits.length === 0) {
-            this.showMessage('Please add at least one category with a limit', 'error');
-            return null;
+            console.log('Creating budget without categories - user can add categories later');
+            // Set a default amount for budgets without categories
+            totalAmount = 0;
+        } else {
+            // Calculate total amount from category limits
+            totalAmount = categoryLimits.reduce((sum, category) => sum + category.limitAmount, 0);
+            
+            if (totalAmount <= 0) {
+                this.showMessage('Total budget amount must be greater than 0', 'error');
+                return null;
+            }
         }
 
         return {
             budget: {
                 name: name,
                 description: description,
-                amount: amount,
+                amount: totalAmount, // Use calculated amount
                 startDate: startDate,
                 endDate: endDate,
                 status: 'ACTIVE'
@@ -765,12 +792,11 @@ class BudgetManager {
     
     // Show helpful message when BudgetManager is not ready
     static showNotReadyMessage() {
-        const status = this.getStatus();
         const authStatus = this.checkAuthStatus();
         
         let message = 'Budget Manager is not ready yet.\n\n';
-        message += `Current Status: ${status.message}\n`;
-        message += `Categories Loaded: ${status.categories}\n`;
+        message += `Current Status: ${this.isReady() ? 'Ready' : 'Not Ready'}\n`;
+        message += `Categories Loaded: ${window.budgetManager?.categories?.length || 0}\n`;
         message += `Authentication: ${authStatus.hasToken ? 'OK' : 'Failed'}\n\n`;
         message += 'This usually means:\n';
         message += '• The page is still loading\n';
@@ -781,41 +807,7 @@ class BudgetManager {
         alert(message);
     }
     
-    // Show status in UI
-    static showStatusInUI() {
-        const status = this.getStatus();
-        const authStatus = this.checkAuthStatus();
-        
-        // Create or update status display
-        let statusDisplay = document.getElementById('budgetManagerStatus');
-        if (!statusDisplay) {
-            statusDisplay = document.createElement('div');
-            statusDisplay.id = 'budgetManagerStatus';
-            statusDisplay.style.cssText = `
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                background: white;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                padding: 10px;
-                font-size: 12px;
-                z-index: 1000;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            `;
-            document.body.appendChild(statusDisplay);
-        }
-        
-        statusDisplay.innerHTML = `
-            <strong>Budget Manager Status</strong><br>
-            Status: ${status.message}<br>
-            Categories: ${status.categories}<br>
-            Budgets: ${status.budgets}<br>
-            Auth: ${authStatus.hasToken ? 'OK' : 'Failed'}<br>
-            <button onclick="BudgetManager.showStatusInUI()" style="margin-top: 5px;">Refresh</button>
-            <button onclick="document.getElementById('budgetManagerStatus').remove()" style="margin-top: 5px;">Close</button>
-        `;
-    }
+
     
     // Check if BudgetManager is ready
     static isReady() {
@@ -824,24 +816,7 @@ class BudgetManager {
                window.budgetManager.categories.length > 0;
     }
     
-    // Get detailed status information
-    static getStatus() {
-        if (!window.budgetManager) {
-            return {
-                ready: false,
-                message: 'Budget Manager not initialized',
-                categories: 0,
-                budgets: 0
-            };
-        }
-        
-        return {
-            ready: true,
-            message: 'Budget Manager is ready',
-            categories: window.budgetManager.categories?.length || 0,
-            budgets: window.budgetManager.budgets?.length || 0
-        };
-    }
+
     
     // Wait for BudgetManager to be ready
     static async waitForReady(maxWaitTime = 10000) {
@@ -866,12 +841,7 @@ class BudgetManager {
         return false;
     }
     
-    // Show current status to user
-    static showStatus() {
-        const status = this.getStatus();
-        const message = `Budget Manager Status:\n${status.message}\nCategories: ${status.categories}\nBudgets: ${status.budgets}`;
-        alert(message);
-    }
+
     
     // Check authentication status
     static checkAuthStatus() {
@@ -894,7 +864,6 @@ class BudgetManager {
         console.log('=== Troubleshooting Budget Manager ===');
         
         const authStatus = this.checkAuthStatus();
-        const status = this.getStatus();
         
         let issues = [];
         let suggestions = [];
@@ -909,7 +878,7 @@ class BudgetManager {
             suggestions.push('Try refreshing the page or check console for errors');
         }
         
-        if (status.ready && status.categories === 0) {
+        if (window.budgetManager && (!window.budgetManager.categories || window.budgetManager.categories.length === 0)) {
             issues.push('No categories loaded');
             suggestions.push('Categories may still be loading or there may be an API issue');
         }
@@ -978,12 +947,11 @@ class BudgetManager {
             const budgetId = document.getElementById('editBudgetId').value;
             const name = document.getElementById('editBudgetName').value.trim();
             const description = document.getElementById('editBudgetDescription').value.trim();
-            const amount = parseFloat(document.getElementById('editBudgetAmount').value);
             const period = document.getElementById('editBudgetPeriod').value;
             const startDate = document.getElementById('editBudgetStartDate').value;
             const endDate = document.getElementById('editBudgetEndDate').value;
 
-            if (!name || !amount || !period || !startDate || !endDate) {
+            if (!name || !period || !startDate || !endDate) {
                 this.showMessage('Please fill in all required fields', 'error');
                 return;
             }
@@ -994,15 +962,34 @@ class BudgetManager {
                 return;
             }
 
+            // Get category limits for amount calculation
+            const categoryLimits = [];
+            const categoryRows = document.querySelectorAll('#editCategoryInputs .category-input-row');
+            
+            categoryRows.forEach(row => {
+                const categorySelect = row.querySelector('.category-select');
+                const limitInput = row.querySelector('.category-limit');
+                
+                if (categorySelect.value && limitInput.value) {
+                    categoryLimits.push({
+                        categoryId: categorySelect.value,
+                        limitAmount: parseFloat(limitInput.value)
+                    });
+                }
+            });
+
+            // Note: Budget amount is managed through category limits, not directly editable
+            // The amount will be calculated from existing category limits
+            console.log('Budget amount is managed through category limits');
+
             const submitBtn = event.target.querySelector('.submit-btn');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Updating...';
 
             console.log('🔄 Starting budget details update...');
-            console.log('📋 Budget ID:', budgetId);
+            console.log('📋 Updating budget details');
             console.log('📋 Budget Name:', name);
             console.log('📋 Budget Description:', description);
-            console.log('📋 Budget Amount:', amount);
             console.log('📋 Budget Period:', period);
             console.log('📋 Start Date:', startDate);
             console.log('📋 End Date:', endDate);
@@ -1011,7 +998,6 @@ class BudgetManager {
             const budgetUpdateData = {
                 name: name,
                 description: description,
-                amount: amount,
                 period: period,
                 startDate: startDate,
                 endDate: endDate
@@ -1036,6 +1022,10 @@ class BudgetManager {
                 console.log('🔄 Refreshing budget list...');
                 await this.loadBudgets();
                 console.log('✅ Budget list refreshed successfully');
+                
+                // Update budget statistics to reflect any changes
+                this.updateBudgetStats();
+                console.log(`✅ Budget statistics updated after edit`);
             } catch (refreshError) {
                 console.error('⚠️ Failed to refresh budget list:', refreshError);
                 this.showMessage('Budget updated but failed to refresh the list. Please refresh the page manually.', 'warning');
@@ -1133,7 +1123,17 @@ class BudgetManager {
                 `;
             });
         } else {
-            html += '<p>No categories found for this budget.</p>';
+            html += `
+                <div class="category-summary" style="background: #f7fafc; border-left-color: #718096;">
+                    <div class="category-header">
+                        <span class="category-name">No Categories Assigned</span>
+                        <span class="category-status">ℹ️ Information</span>
+                    </div>
+                    <div class="category-details">
+                        <span>This budget has no categories assigned yet.</span>
+                    </div>
+                </div>
+            `;
         }
 
         html += `
@@ -1147,7 +1147,7 @@ class BudgetManager {
     // Edit individual category limit
     async editCategoryLimit(budgetId, categoryId, currentLimit) {
         try {
-            console.log(`🔧 Editing category limit for budget ${budgetId}, category ${categoryId}, current limit: $${currentLimit}`);
+            console.log(`🔧 Editing category limit, current limit: $${currentLimit}`);
             
             // Show prompt for new limit
             const newLimit = prompt(`Enter new limit for this category (current: $${currentLimit}):`, currentLimit);
@@ -1168,7 +1168,16 @@ class BudgetManager {
             
             if (result) {
                 this.showMessage(`Category limit updated successfully to $${limitAmount}`, 'success');
+                
+                // Immediately update the budget amount display for this specific budget
+                this.updateBudgetAmountDisplay(budgetId);
+                
                 await this.loadBudgets(); // Refresh the list
+                
+                // Update budget statistics to reflect the new total
+                this.updateBudgetStats();
+                
+                console.log(`✅ Category limit updated, stats updated`);
             }
         } catch (error) {
             console.error('Error updating category limit:', error);
@@ -1209,7 +1218,7 @@ class BudgetManager {
     // Delete category from budget
     async deleteCategoryFromBudget(budgetId, categoryId, categoryName) {
         try {
-            console.log(`🗑️ Deleting category ${categoryName} (${categoryId}) from budget ${budgetId}`);
+            console.log(`🗑️ Deleting category ${categoryName} from budget`);
             
             // Show confirmation dialog
             const confirmed = confirm(`Are you sure you want to remove "${categoryName}" from this budget?\n\nThis will:\n• Remove the category limit\n• Delete all spending data for this category in this budget\n• This action cannot be undone`);
@@ -1220,7 +1229,7 @@ class BudgetManager {
             }
             
             // Call the backend API to delete the category
-            console.log(`🔄 Calling API to delete category ${categoryId} from budget ${budgetId}`);
+            console.log(`🔄 Calling API to delete category from budget`);
             const result = await apiService.deleteCategoryFromBudget(budgetId, categoryId);
             
             console.log(`✅ API call completed, result:`, result);
@@ -1228,8 +1237,16 @@ class BudgetManager {
             if (result) {
                 this.showMessage(`Category "${categoryName}" removed successfully from budget`, 'success');
                 console.log(`🔄 Refreshing budget list to show changes...`);
+                
+                // Immediately update the budget amount display for this specific budget
+                this.updateBudgetAmountDisplay(budgetId);
+                
                 await this.loadBudgets(); // Refresh the list
                 console.log(`✅ Budget list refreshed after deletion`);
+                
+                // Update budget statistics to reflect the new total
+                this.updateBudgetStats();
+                console.log(`✅ Budget statistics updated after category deletion`);
                 
                 // Additional verification - check if the category is still in the budget
                 const updatedBudget = this.budgets.find(b => b.id === budgetId);
@@ -1296,7 +1313,7 @@ class BudgetManager {
     // Add new category to existing budget
     async addCategoryToBudget(budgetId) {
         try {
-            console.log(`🔧 Adding new category to budget ${budgetId}`);
+            console.log(`🔧 Adding new category to budget`);
             
             // Show prompt for category selection and limit
             const categorySelect = document.createElement('select');
@@ -1381,7 +1398,16 @@ class BudgetManager {
                     if (result) {
                         this.showMessage(`Category added successfully with limit $${limitAmount}`, 'success');
                         dialog.remove();
+                        
+                        // Immediately update the budget amount display for this specific budget
+                        this.updateBudgetAmountDisplay(budgetId);
+                        
                         await this.loadBudgets(); // Refresh the list
+                        
+                        // Update budget statistics to reflect the new total
+                        this.updateBudgetStats();
+                        
+                        console.log(`✅ Category added to budget, stats updated`);
                     }
                 } catch (error) {
                     console.error('Error adding category to budget:', error);
@@ -1436,7 +1462,6 @@ class BudgetManager {
             document.getElementById('editBudgetId').value = budget.id;
             document.getElementById('editBudgetName').value = budget.name || '';
             document.getElementById('editBudgetDescription').value = budget.description || '';
-            document.getElementById('editBudgetAmount').value = budget.amount || '';
             document.getElementById('editBudgetPeriod').value = budget.period || 'MONTHLY';
             
             // Populate date fields
@@ -1445,6 +1470,18 @@ class BudgetManager {
             }
             if (budget.endDate) {
                 document.getElementById('editBudgetEndDate').value = budget.endDate;
+            }
+            
+            // Calculate and display the total amount from category limits
+            if (budget.categoryLimits && budget.categoryLimits.length > 0) {
+                const totalAmount = budget.categoryLimits.reduce((sum, category) => sum + (category.limitAmount || 0), 0);
+                const calculatedDisplay = document.getElementById('editCalculatedBudgetAmount');
+                if (calculatedDisplay) {
+                    const amountValue = calculatedDisplay.querySelector('.amount-value');
+                    if (amountValue) {
+                        amountValue.textContent = `$${totalAmount.toFixed(2)}`;
+                    }
+                }
             }
             
             openEditBudgetModal();
@@ -1460,6 +1497,10 @@ class BudgetManager {
             if (result) {
                 this.showMessage('Budget evaluation completed successfully!', 'success');
                 await this.loadBudgets(); // Refresh to show updated status
+                
+                // Update budget statistics to reflect any changes
+                this.updateBudgetStats();
+                console.log(`✅ Budget evaluation completed, stats updated`);
             }
         } catch (error) {
             console.error('Error evaluating budget:', error);
@@ -1477,6 +1518,10 @@ class BudgetManager {
             if (result) {
                 this.showMessage('Budget archived successfully!', 'success');
                 await this.loadBudgets(); // Refresh the list
+                
+                // Update budget statistics to reflect the archived budget
+                this.updateBudgetStats();
+                console.log(`✅ Budget archived, stats updated`);
             }
         } catch (error) {
             console.error('Error archiving budget:', error);
@@ -1499,6 +1544,10 @@ class BudgetManager {
             if (result) {
                 this.showMessage('Budget deleted successfully!', 'success');
                 await this.loadBudgets(); // Refresh the list
+                
+                // Update budget statistics to reflect the deleted budget
+                this.updateBudgetStats();
+                console.log(`✅ Budget deleted, stats updated`);
             }
         } catch (error) {
             console.error('Error deleting budget:', error);
@@ -1508,7 +1557,7 @@ class BudgetManager {
 
     async refreshBudgetSpending(budgetId) {
         try {
-            console.log('🔄 Refreshing spending for budget:', budgetId);
+            console.log('🔄 Refreshing spending for budget');
             this.showMessage('Refreshing budget spending...', 'info');
             
             // Call the backend to recalculate spending for this specific budget
@@ -1516,6 +1565,10 @@ class BudgetManager {
             
             // Reload the budgets to get updated data
             await this.loadBudgets();
+            
+            // Update budget statistics to reflect any spending changes
+            this.updateBudgetStats();
+            console.log(`✅ Budget spending refreshed, stats updated`);
             
             this.showMessage('Budget spending refreshed successfully!', 'success');
         } catch (error) {
@@ -1526,7 +1579,7 @@ class BudgetManager {
 
     async debugBudgetData(budgetId) {
         try {
-            console.log('🔍 Debugging budget data for budget:', budgetId);
+            console.log('🔍 Debugging budget data');
             
             // Get the budget from our local data
             const budget = this.budgets.find(b => b.id === budgetId);
@@ -1569,7 +1622,7 @@ class BudgetManager {
             // Check for cross-user categories
             console.log('🔍 Checking for cross-user categories...');
             const currentUserEmail = localStorage.getItem('userEmail');
-            console.log('Current user email:', currentUserEmail);
+            console.log('Current user email exists:', !!currentUserEmail);
             
             if (budget.categoryLimits && budget.categoryLimits.length > 0) {
                 const suspiciousCategories = budget.categoryLimits.filter(cat => 
@@ -1688,6 +1741,128 @@ class BudgetManager {
             }
         }, CONFIG.UI.MESSAGE_TIMEOUT);
     }
+
+    // Calculate and update the displayed total budget amount
+    updateCalculatedBudgetAmount() {
+        const categoryRows = document.querySelectorAll('.category-input-row');
+        let totalAmount = 0;
+        
+        categoryRows.forEach(row => {
+            const limitInput = row.querySelector('.category-limit');
+            if (limitInput.value && !isNaN(parseFloat(limitInput.value))) {
+                totalAmount += parseFloat(limitInput.value);
+            }
+        });
+        
+        // Update the display
+        const calculatedDisplay = document.getElementById('calculatedBudgetAmount');
+        if (calculatedDisplay) {
+            const amountValue = calculatedDisplay.querySelector('.amount-value');
+            if (amountValue) {
+                amountValue.textContent = `$${totalAmount.toFixed(2)}`;
+            }
+        }
+        
+        return totalAmount;
+    }
+    
+    // Calculate and update the displayed total budget amount for edit form
+    updateEditCalculatedBudgetAmount() {
+        const categoryRows = document.querySelectorAll('#editCategoryInputs .category-input-row');
+        let totalAmount = 0;
+        
+        categoryRows.forEach(row => {
+            const limitInput = row.querySelector('.category-limit');
+            if (limitInput.value && !isNaN(parseFloat(limitInput.value))) {
+                totalAmount += parseFloat(limitInput.value);
+            }
+        });
+        
+        // Update the display
+        const calculatedDisplay = document.getElementById('editCalculatedBudgetAmount');
+        if (calculatedDisplay) {
+            const amountValue = calculatedDisplay.querySelector('.amount-value');
+            if (amountValue) {
+                amountValue.textContent = `$${totalAmount.toFixed(2)}`;
+            }
+        }
+        
+        return totalAmount;
+    }
+
+    // Set up event listeners for category limit inputs
+    setupCategoryLimitListeners() {
+        const categoryLimitInputs = document.querySelectorAll('.category-limit');
+        categoryLimitInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                this.updateCalculatedBudgetAmount();
+            });
+        });
+    }
+    
+    // Set up event listeners for edit category limit inputs
+    setupEditCategoryLimitListeners() {
+        const categoryLimitInputs = document.querySelectorAll('#editCategoryInputs .category-limit');
+        categoryLimitInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                this.updateEditCalculatedBudgetAmount();
+            });
+        });
+    }
+
+    // Recalculate and update budget amount display for a specific budget
+    updateBudgetAmountDisplay(budgetId) {
+        const budget = this.budgets.find(b => b.id === budgetId);
+        if (!budget) {
+            console.log(`Budget not found for amount update`);
+            return;
+        }
+        
+        // Calculate total amount from category limits
+        let totalAmount = 0;
+        if (budget.categoryLimits && budget.categoryLimits.length > 0) {
+            totalAmount = budget.categoryLimits.reduce((sum, category) => sum + (category.limitAmount || 0), 0);
+        }
+        
+        // Update the budget amount in our local data
+        budget.amount = totalAmount;
+        
+        // Update the budget card display
+        this.updateBudgetCardAmount(budgetId, totalAmount);
+        
+        console.log(`✅ Budget amount updated`);
+        
+        return totalAmount;
+    }
+    
+    // Update the budget amount display in the budget card
+    updateBudgetCardAmount(budgetId, newAmount) {
+        // Find the budget card element
+        const budgetCard = document.querySelector(`[data-budget-id="${budgetId}"] .budget-amount`);
+        if (budgetCard) {
+            budgetCard.textContent = `$${newAmount.toFixed(2)}`;
+            console.log(`✅ Budget card amount display updated to $${newAmount.toFixed(2)}`);
+        } else {
+            console.log(`⚠️ Budget card element not found, amount: $${newAmount.toFixed(2)}`);
+        }
+    }
+
+    // Update all budget amounts from their category limits to ensure consistency
+    updateAllBudgetAmounts() {
+        console.log('🔄 Updating all budget amounts from category limits...');
+        
+        this.budgets.forEach(budget => {
+            const calculatedAmount = this.updateBudgetAmountDisplay(budget.id);
+            console.log(`  Budget "${budget.name}" amount updated`);
+            
+            // Log if budget has no categories
+            if (!budget.categoryLimits || budget.categoryLimits.length === 0) {
+                console.log(`  ⚠️ Budget "${budget.name}" has no categories assigned`);
+            }
+        });
+        
+        console.log('✅ All budget amounts updated from category limits');
+    }
 }
 
 // Global functions for modal management
@@ -1780,15 +1955,39 @@ async function openCreateBudgetModal() {
         </div>
     `;
     
+    // Reset the calculated amount display
+    const calculatedDisplay = document.getElementById('calculatedBudgetAmount');
+    if (calculatedDisplay) {
+        const amountValue = calculatedDisplay.querySelector('.amount-value');
+        if (amountValue) {
+            amountValue.textContent = '$0.00';
+        }
+    }
+    
     // Populate the category select after DOM manipulation
     // Use setTimeout to ensure DOM is ready
     setTimeout(() => {
         budgetManager.populateCategorySelects();
+        
+        // Set up event listeners for category limit inputs
+        budgetManager.setupCategoryLimitListeners();
+        
+        // Initialize the calculated amount display
+        budgetManager.updateCalculatedBudgetAmount();
     }, 0);
 }
 
 function closeCreateBudgetModal() {
     document.getElementById('createBudgetModal').style.display = 'none';
+    
+    // Reset the calculated amount display
+    const calculatedDisplay = document.getElementById('calculatedBudgetAmount');
+    if (calculatedDisplay) {
+        const amountValue = calculatedDisplay.querySelector('.amount-value');
+        if (amountValue) {
+            amountValue.textContent = '$0.00';
+        }
+    }
 }
 
 function openEditBudgetModal() {
@@ -1840,7 +2039,16 @@ function addCategory() {
         newSelect.appendChild(option);
     });
     
+    // Add event listeners for the new inputs
+    const newLimitInput = newRow.querySelector('.category-limit');
+    newLimitInput.addEventListener('input', () => {
+        budgetManager.updateCalculatedBudgetAmount();
+    });
+    
     console.log(`New row populated with ${budgetManager.categories.length} categories`);
+    
+    // Update the calculated amount
+    budgetManager.updateCalculatedBudgetAmount();
 }
 
 function removeCategory(button) {
@@ -1858,6 +2066,9 @@ function removeCategory(button) {
                 remainingRemoveButton.style.display = 'none';
             }
         }
+        
+        // Update the calculated amount
+        budgetManager.updateCalculatedBudgetAmount();
     }
 }
 
@@ -1885,33 +2096,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Make it globally accessible for static methods
     window.budgetManager = budgetManager;
     
-    // Show initial status after a short delay
-    setTimeout(() => {
-        if (BudgetManager.showStatusInUI) {
-            BudgetManager.showStatusInUI();
-        }
-    }, 500);
-    
-    // Show status again after BudgetManager is fully initialized
-    setTimeout(() => {
-        if (BudgetManager.showStatusInUI) {
-            BudgetManager.showStatusInUI();
-        }
-    }, 3000);
-    
-    // Show status every 5 seconds for debugging
-    setInterval(() => {
-        if (BudgetManager.showStatusInUI) {
-            BudgetManager.showStatusInUI();
-        }
-    }, 5000);
+
     
     // Log initialization complete
     console.log('✅ BudgetManager initialization complete');
     console.log('🔧 Available debug functions:');
     console.log('  • checkBudgetManagerStatus()');
     console.log('  • BudgetManager.troubleshoot()');
-    console.log('  • BudgetManager.showStatusInUI()');
+
     console.log('  • helpWithBudgetManagerError()');
 });
 
@@ -1922,7 +2114,7 @@ console.log('=== Budget Manager Debug Functions Available ===');
 console.log('• checkBudgetManagerStatus() - Check current status');
 console.log('• BudgetManager.troubleshoot() - Run troubleshooting');
 console.log('• BudgetManager.showStatus() - Show status to user');
-console.log('• BudgetManager.showStatusInUI() - Show status in UI');
+
 console.log('• BudgetManager.checkAuthStatus() - Check authentication');
 console.log('• reloadCategories() - Manually reload categories');
 console.log('• helpWithBudgetManagerError() - Get help with errors');
@@ -1934,8 +2126,7 @@ function checkBudgetManagerStatus() {
     console.log('=== BudgetManager Status Check ===');
     console.log('BudgetManager instance:', window.budgetManager);
     console.log('Static methods available:', {
-        isReady: BudgetManager.isReady(),
-        getStatus: BudgetManager.getStatus()
+        isReady: BudgetManager.isReady()
     });
     
     if (window.budgetManager) {
@@ -2049,7 +2240,7 @@ function debugBudgetSystem() {
     // Check authentication
     const token = localStorage.getItem(CONFIG.JWT.STORAGE_KEY);
     console.log('JWT Token exists:', !!token);
-    console.log('JWT Token value:', token ? token.substring(0, 20) + '...' : 'none');
+            console.log('JWT Token exists:', !!token);
     
     // Check BudgetManager instance
     console.log('BudgetManager instance:', budgetManager);
@@ -2093,7 +2284,7 @@ function testAuthAndCategories() {
     
     console.log('1. Authentication Check:');
     console.log('   - Token exists:', !!token);
-    console.log('   - User email:', userEmail);
+            console.log('   - User email exists:', !!userEmail);
     
     if (!token) {
         console.log('   ❌ No authentication token found');
@@ -2145,7 +2336,6 @@ function testCategoryLoadingEnhanced() {
     const token = localStorage.getItem('authToken'); // Use the same key as auth.js
     console.log('1. Authentication Check:');
     console.log('   - Token exists:', !!token);
-    console.log('   - Token value:', token ? token.substring(0, 20) + '...' : 'none');
     
     if (!token) {
         console.log('   ❌ No authentication token found');
@@ -2160,7 +2350,6 @@ function testCategoryLoadingEnhanced() {
     if (window.budgetManager) {
         console.log('   ✅ BudgetManager instance found');
         console.log('   - Categories loaded:', window.budgetManager.categories?.length || 0);
-        console.log('   - Categories data:', window.budgetManager.categories);
     } else {
         console.log('   ❌ BudgetManager instance not found');
         return;
@@ -2178,7 +2367,6 @@ function testCategoryLoadingEnhanced() {
             .then(categories => {
                 console.log('   ✅ getUserCategories successful');
                 console.log('   - Categories returned:', categories?.length || 0);
-                console.log('   - Categories data:', categories);
                 
                 // Update BudgetManager
                 if (window.budgetManager) {
@@ -2212,7 +2400,7 @@ function testAllCategories() {
     console.log('Categories count:', categories?.length || 0);
     
     if (categories && categories.length > 0) {
-        console.log('Categories data:', categories);
+        console.log('Categories count:', categories.length);
         
         // Test 2: Verify each category has required fields
         console.log('\n2. Verifying category structure...');
@@ -2220,7 +2408,7 @@ function testAllCategories() {
         categories.forEach((cat, index) => {
             if (cat && cat.id && cat.name) {
                 validCategories++;
-                console.log(`✅ Category ${index + 1}: ${cat.name} (ID: ${cat.id})`);
+                console.log(`✅ Category ${index + 1}: ${cat.name}`);
             } else {
                 console.error(`❌ Invalid category ${index + 1}:`, cat);
             }
@@ -2287,15 +2475,13 @@ function checkAuthStatus() {
     
     console.log('\n2. Stored Values:');
     console.log('   - Token exists:', !!token);
-    console.log('   - Token value:', token ? token.substring(0, 20) + '...' : 'none');
-    console.log('   - User email:', userEmail);
-    console.log('   - User name:', userName);
+    console.log('   - User email exists:', !!userEmail);
+    console.log('   - User name exists:', !!userName);
     
     console.log('\n3. BudgetManager Status:');
     if (window.budgetManager) {
         console.log('   - Instance exists:', !!window.budgetManager);
         console.log('   - Categories loaded:', window.budgetManager.categories?.length || 0);
-        console.log('   - Categories data:', window.budgetManager.categories);
     } else {
         console.log('   - BudgetManager not found');
     }
@@ -2335,7 +2521,6 @@ async function testCategoriesAPI() {
         // Check authentication
         const token = localStorage.getItem('authToken');
         console.log('Auth token exists:', !!token);
-        console.log('Token value:', token ? token.substring(0, 20) + '...' : 'none');
         
         if (!token) {
             console.error('❌ No auth token found');
@@ -2347,22 +2532,20 @@ async function testCategoriesAPI() {
         const categories = await apiService.getUserCategories();
         
         console.log('=== DIRECT API RESPONSE ===');
-        console.log('Raw response:', categories);
         console.log('Response type:', typeof categories);
         console.log('Response is array:', Array.isArray(categories));
         console.log('Response length:', categories?.length || 0);
         
         if (categories && Array.isArray(categories)) {
             console.log('✅ Valid categories array received');
-            console.log('Categories:', categories);
+            console.log('Categories count:', categories?.length || 0);
             
             // Check each category
             categories.forEach((cat, index) => {
-                console.log(`Category ${index + 1}:`, cat);
                 if (cat && cat.id && cat.name) {
-                    console.log(`  ✅ Valid: ${cat.name} (${cat.id})`);
+                    console.log(`  ✅ Valid: ${cat.name}`);
                 } else {
-                    console.error(`  ❌ Invalid:`, cat);
+                    console.error(`  ❌ Invalid category ${index + 1}`);
                 }
             });
             
@@ -2432,7 +2615,7 @@ function compareCategoriesData() {
         if (bmCategories && bmCategories.length > 0) {
             console.log('  - Categories:');
             bmCategories.forEach((cat, index) => {
-                console.log(`    ${index + 1}. ${cat.name} (${cat.id})`);
+                console.log(`    ${index + 1}. ${cat.name}`);
             });
         }
     } else {
@@ -2504,6 +2687,10 @@ async function recalculateAllBudgetSpending() {
         // Refresh the budgets to show updated spending amounts
         if (window.budgetManager) {
             await window.budgetManager.loadBudgets();
+            
+            // Update budget statistics to reflect any spending changes
+            window.budgetManager.updateBudgetStats();
+            console.log(`✅ All budget spending recalculated, stats updated`);
         }
         
     } catch (error) {
@@ -2567,6 +2754,10 @@ async function cleanupInvalidCategories() {
         // Refresh the budgets to show updated data
         if (window.budgetManager) {
             await window.budgetManager.loadBudgets();
+            
+            // Update budget statistics to reflect any changes
+            window.budgetManager.updateBudgetStats();
+            console.log(`✅ Invalid categories cleaned up, stats updated`);
         }
         
     } catch (error) {

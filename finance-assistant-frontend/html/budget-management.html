@@ -875,6 +875,84 @@
             display: inline-block;
             margin-top: 10px;
         }
+        
+        .calculated-amount-display {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .calculated-amount-display .amount-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .calculated-amount-display .amount-note {
+            color: #718096;
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+        
+        .calculated-amount-display.updating {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        
+        .calculated-amount-display.updating .amount-value {
+            color: #856404;
+        }
+        
+        .form-note {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 15px 0;
+        }
+        
+        .form-note p {
+            margin: 0;
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .form-note i {
+            color: #667eea;
+            margin-right: 8px;
+        }
+        
+        .no-categories-note {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 15px 0;
+            text-align: center;
+            color: #718096;
+        }
+        
+        .no-categories-note i {
+            color: #667eea;
+            margin-right: 8px;
+        }
+        
+        .category-item.no-categories {
+            opacity: 0.7;
+        }
+        
+        .category-item.no-categories .category-name {
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -951,8 +1029,11 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="budgetAmount">Total Budget Amount *</label>
-                        <input type="number" id="budgetAmount" step="0.01" min="0" required placeholder="1000.00">
+                        <label for="budgetAmount">Total Budget Amount (Calculated)</label>
+                        <div class="calculated-amount-display" id="calculatedBudgetAmount">
+                            <span class="amount-value">$0.00</span>
+                            <small class="amount-note">Total calculated from category limits below</small>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -991,6 +1072,9 @@
                     <button type="button" class="add-category-btn" onclick="addCategory()">
                         <i class="fas fa-plus"></i> Add Category
                     </button>
+                    <div class="form-note">
+                        <p><i class="fas fa-info-circle"></i> <strong>Note:</strong> The total budget amount above is automatically calculated from the category limits you set below. Add or modify category limits to adjust the total budget.</p>
+                    </div>
                 </div>
                 
                 <button type="submit" class="submit-btn">Create Budget</button>
@@ -1031,8 +1115,11 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="editBudgetAmount">Total Budget Amount</label>
-                    <input type="number" id="editBudgetAmount" step="0.01" min="0" required>
+                    <label for="editBudgetAmount">Total Budget Amount (Calculated)</label>
+                    <div class="calculated-amount-display" id="editCalculatedBudgetAmount">
+                        <span class="amount-value">$0.00</span>
+                        <small class="amount-note">Total calculated from category limits</small>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -1045,7 +1132,7 @@
                 </div>
                 
                 <div class="edit-note">
-                    <p><i class="fas fa-info-circle"></i> <strong>Note:</strong> To edit category limits, use the edit buttons next to each category. To add new categories, use the "Add Category" button on the budget card.</p>
+                    <p><i class="fas fa-info-circle"></i> <strong>Note:</strong> The total budget amount is automatically calculated from your category limits and cannot be manually edited. To change the total amount, you must modify the individual category limits using the edit buttons next to each category on the budget card.</p>
                 </div>
                 
                 <button type="submit" class="submit-btn">Update Budget Details</button>

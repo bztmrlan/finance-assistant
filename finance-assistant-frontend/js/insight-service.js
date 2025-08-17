@@ -195,7 +195,7 @@ async function handleInsightRequest(e) {
         if (response.ok) {
             const insight = await response.json();
             console.log('Generated insight:', insight);
-            console.log('Insight ID:', insight.id);
+            console.log('Insight processed successfully');
             console.log('Insight message:', insight.message);
             console.log('Insight type:', insight.type);
             
@@ -403,7 +403,7 @@ function displayInsights() {
 
 // Create insight card HTML
 function createInsightCard(insight) {
-    console.log('Creating insight card for insight:', insight.id);
+            console.log('Creating insight card');
     const date = new Date(insight.generatedAt).toLocaleDateString();
     const time = new Date(insight.generatedAt).toLocaleTimeString();
     const confidencePercent = Math.round((insight.confidenceScore || 0) * 100);
@@ -447,7 +447,7 @@ function createInsightCard(insight) {
 
 // Mark insight as viewed
 async function markAsViewed(insightId) {
-    console.log('Marking insight as viewed:', insightId);
+            console.log('Marking insight as viewed');
     const token = localStorage.getItem('authToken');
     if (!token) {
         console.warn('No auth token found for marking insight as viewed');
@@ -482,7 +482,7 @@ async function markAsViewed(insightId) {
 
 // Delete insight
 async function deleteInsight(insightId) {
-    console.log('Deleting insight:', insightId);
+            console.log('Deleting insight');
     if (!confirm('Are you sure you want to delete this insight?')) {
         console.log('User cancelled insight deletion');
         return;

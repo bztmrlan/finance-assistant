@@ -4,23 +4,12 @@ class GoalManager {
         this.goals = [];
         this.categories = [];
         this.currentEditingGoal = null;
-        this.currentProgressGoal = null;
-        
         this.init();
     }
 
     init() {
         console.log('🎯 GoalManager initializing...');
-        
-        // Setup event listeners with retry mechanism
         this.setupEventListeners();
-        
-        // Retry setting up event listeners if forms weren't found
-        if (!document.getElementById('progressForm')) {
-            console.log('🔍 Progress form not found, retrying in 100ms...');
-            setTimeout(() => this.setupEventListeners(), 100);
-        }
-        
         this.checkAuthStatus();
         this.loadCategories();
         this.loadGoals();
@@ -35,16 +24,6 @@ class GoalManager {
         if (goalForm) {
             goalForm.addEventListener('submit', (e) => this.handleCreateGoal(e));
             console.log('✅ Goal form event listener added');
-        }
-
-        // Progress update form
-        const progressForm = document.getElementById('progressForm');
-        console.log('🔍 Progress form found:', !!progressForm);
-        if (progressForm) {
-            progressForm.addEventListener('submit', (e) => this.handleUpdateProgress(e));
-            console.log('✅ Progress form event listener added');
-        } else {
-            console.error('❌ Progress form not found during setup');
         }
 
         // Edit goal form
@@ -155,7 +134,6 @@ class GoalManager {
 
     displayGoals() {
         const goalsList = document.getElementById('goalsList');
-        
         if (!goalsList) return;
 
         if (this.goals.length === 0) {
@@ -164,20 +142,7 @@ class GoalManager {
         }
 
         goalsList.innerHTML = '';
-        
-        // Sort goals: completed last, overdue first
-        const sortedGoals = [...this.goals].sort((a, b) => {
-            if (a.completed && !b.completed) return 1;
-            if (!a.completed && b.completed) return -1;
-            if (a.completed && b.completed) return 0;
-            
-            // For active goals, sort by deadline (earliest first)
-            const aDate = new Date(a.targetDate);
-            const bDate = new Date(b.targetDate);
-            return aDate - bDate;
-        });
-
-        sortedGoals.forEach(goal => {
+        this.goals.forEach(goal => {
             const goalCard = this.createGoalCard(goal);
             goalsList.appendChild(goalCard);
         });
@@ -238,9 +203,6 @@ class GoalManager {
             </div>
             
             <div class="goal-actions">
-                <button onclick="goalManager.openProgressModal('${goal.id}')" class="action-btn success">
-                    <i class="fas fa-plus"></i> Add Progress
-                </button>
                 <button onclick="goalManager.openEditModal('${goal.id}')" class="action-btn primary">
                     <i class="fas fa-edit"></i> Edit
                 </button>
@@ -286,7 +248,7 @@ class GoalManager {
                 <div class="empty-state">
                     <i class="fas fa-bullseye"></i>
                     <h3>No goals yet</h3>
-                    <p>Create your first financial goal to get started on your journey to financial success!</p>
+                    <p>Create your first financial goal to get started!</p>
                 </div>
             `;
         }
@@ -305,151 +267,57 @@ class GoalManager {
         };
 
         try {
-            console.log('🎯 Creating goal:', goalData);
+            console.log('🎯 Creating new goal:', goalData);
             const newGoal = await window.apiService.createGoal(goalData);
-            console.log('✅ Goal created:', newGoal);
+            console.log('✅ Goal created successfully:', newGoal);
             
             this.showMessage('Goal created successfully!', 'success');
-            this.resetForm();
+            event.target.reset();
+            
+            // Reload goals to show the new one
             await this.loadGoals();
+            
         } catch (error) {
             console.error('❌ Error creating goal:', error);
             this.showMessage('Error creating goal: ' + error.message, 'error');
         }
     }
 
-    resetForm() {
-        const form = document.getElementById('goalForm');
-        if (form) {
-            form.reset();
-            // Reset target date to 1 year from now
-            const targetDateInput = document.getElementById('targetDate');
-            if (targetDateInput) {
-                const oneYearFromNow = new Date();
-                oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-                targetDateInput.value = oneYearFromNow.toISOString().split('T')[0];
-            }
-        }
-    }
-
-    openProgressModal(goalId) {
-        console.log('🔍 openProgressModal called with goalId:', goalId);
-        console.log('🔍 Current progress goal before:', this.currentProgressGoal);
-        
-        this.currentProgressGoal = goalId;
-        console.log('🔍 Current progress goal after:', this.currentProgressGoal);
-        
-        const modal = document.getElementById('progressModal');
-        console.log('🔍 Progress modal element:', modal);
-        
-        if (modal) {
-            modal.style.display = 'block';
-            console.log('🔍 Modal displayed');
-            
-            const amountInput = document.getElementById('progressAmount');
-            console.log('🔍 Amount input element:', amountInput);
-            if (amountInput) {
-                amountInput.focus();
-                console.log('🔍 Amount input focused');
-            } else {
-                console.error('❌ Amount input not found');
-            }
-        } else {
-            console.error('❌ Progress modal not found');
-        }
-    }
-
-    closeProgressModal() {
-        this.currentProgressGoal = null;
-        const modal = document.getElementById('progressModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.getElementById('progressForm').reset();
-        }
-    }
-
-    async handleUpdateProgress(event) {
-        event.preventDefault();
-        
-        console.log('🔍 handleUpdateProgress called');
-        console.log('🔍 currentProgressGoal:', this.currentProgressGoal);
-        
-        if (!this.currentProgressGoal) {
-            console.error('❌ No current progress goal set');
-            this.showMessage('Error: No goal selected for progress update', 'error');
-            return;
-        }
-        
-        const formData = new FormData(event.target);
-        const amount = parseFloat(formData.get('amount'));
-        
-        console.log('🔍 Form data amount:', amount);
-        console.log('🔍 Amount type:', typeof amount);
-        console.log('🔍 Amount is NaN:', isNaN(amount));
-        
-        if (isNaN(amount) || amount <= 0) {
-            console.error('❌ Invalid amount:', amount);
-            this.showMessage('Error: Please enter a valid positive amount', 'error');
-            return;
-        }
-        
-        try {
-            console.log('📈 Updating progress for goal:', this.currentProgressGoal, 'Amount:', amount);
-            console.log('🔍 API Service available:', !!window.apiService);
-            console.log('🔍 API Service methods:', Object.keys(window.apiService || {}));
-            
-            const result = await window.apiService.updateGoalProgress(this.currentProgressGoal, amount);
-            console.log('✅ Progress updated successfully, result:', result);
-            
-            this.showMessage('Progress updated successfully!', 'success');
-            this.closeProgressModal();
-            await this.loadGoals();
-        } catch (error) {
-            console.error('❌ Error updating progress:', error);
-            console.error('❌ Error details:', {
-                message: error.message,
-                stack: error.stack,
-                name: error.name
-            });
-            this.showMessage('Error updating progress: ' + error.message, 'error');
-        }
-    }
-
     openEditModal(goalId) {
         const goal = this.goals.find(g => g.id === goalId);
-        if (!goal) return;
-        
+        if (!goal) {
+            console.error('❌ Goal not found:', goalId);
+            return;
+        }
+
         this.currentEditingGoal = goal;
         
-        // Populate edit form
+        // Populate the edit form
         document.getElementById('editGoalName').value = goal.name;
         document.getElementById('editTargetAmount').value = goal.targetAmount;
         document.getElementById('editTargetDate').value = goal.targetDate;
         document.getElementById('editCategoryId').value = goal.categoryId || '';
         document.getElementById('editCurrency').value = goal.currency;
         
-        const modal = document.getElementById('editModal');
-        if (modal) {
-            modal.style.display = 'block';
-        }
+        // Show the modal
+        document.getElementById('editModal').style.display = 'block';
     }
 
     closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
         this.currentEditingGoal = null;
-        const modal = document.getElementById('editModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.getElementById('editForm').reset();
-        }
     }
 
     async handleEditGoal(event) {
         event.preventDefault();
         
-        if (!this.currentEditingGoal) return;
-        
+        if (!this.currentEditingGoal) {
+            console.error('❌ No goal selected for editing');
+            return;
+        }
+
         const formData = new FormData(event.target);
-        const goalData = {
+        const updatedData = {
             name: formData.get('name'),
             targetAmount: parseFloat(formData.get('targetAmount')),
             targetDate: formData.get('targetDate'),
@@ -458,13 +326,16 @@ class GoalManager {
         };
 
         try {
-            console.log('✏️ Updating goal:', this.currentEditingGoal.id, goalData);
-            await window.apiService.updateGoal(this.currentEditingGoal.id, goalData);
-            console.log('✅ Goal updated successfully');
+            console.log('🎯 Updating goal with new data');
+            const updatedGoal = await window.apiService.updateGoal(this.currentEditingGoal.id, updatedData);
+            console.log('✅ Goal updated successfully:', updatedGoal);
             
             this.showMessage('Goal updated successfully!', 'success');
             this.closeEditModal();
+            
+            // Reload goals to show the updated one
             await this.loadGoals();
+            
         } catch (error) {
             console.error('❌ Error updating goal:', error);
             this.showMessage('Error updating goal: ' + error.message, 'error');
@@ -477,12 +348,15 @@ class GoalManager {
         }
 
         try {
-            console.log('🗑️ Deleting goal:', goalId);
+            console.log('🗑️ Deleting goal');
             await window.apiService.deleteGoal(goalId);
             console.log('✅ Goal deleted successfully');
             
             this.showMessage('Goal deleted successfully!', 'success');
+            
+            // Reload goals to remove the deleted one
             await this.loadGoals();
+            
         } catch (error) {
             console.error('❌ Error deleting goal:', error);
             this.showMessage('Error deleting goal: ' + error.message, 'error');
@@ -491,18 +365,21 @@ class GoalManager {
 
     async evaluateAllGoals() {
         try {
-            console.log('🔄 Evaluating all goals...');
-            await window.apiService.evaluateGoals();
+            console.log('🔍 Evaluating all goals...');
+            await window.apiService.evaluateAllGoals();
             console.log('✅ Goals evaluated successfully');
             
             this.showMessage('All goals have been evaluated!', 'success');
+            
+            // Reload goals to show updated progress
             await this.loadGoals();
+            
         } catch (error) {
             console.error('❌ Error evaluating goals:', error);
             this.showMessage('Error evaluating goals: ' + error.message, 'error');
         }
     }
-    
+
     async calculateGoalProgressFromTransactions() {
         try {
             console.log('💰 Calculating goal progress from transactions...');
@@ -510,25 +387,44 @@ class GoalManager {
             console.log('✅ Goal progress calculated successfully');
             
             this.showMessage('Goal progress has been calculated from transactions!', 'success');
+            
+            // Reload goals to show updated progress
             await this.loadGoals();
+            
         } catch (error) {
             console.error('❌ Error calculating goal progress:', error);
             this.showMessage('Error calculating goal progress: ' + error.message, 'error');
         }
     }
 
+    resetForm() {
+        const form = document.getElementById('goalForm');
+        if (form) {
+            form.reset();
+            
+            // Reset the target date to 1 year from now
+            const targetDateInput = document.getElementById('targetDate');
+            if (targetDateInput) {
+                const oneYearFromNow = new Date();
+                oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+                targetDateInput.value = oneYearFromNow.toISOString().split('T')[0];
+            }
+        }
+    }
+
     showMessage(message, type = 'info') {
-        // Create a simple toast message
+        // Create a toast notification
         const toast = document.createElement('div');
         toast.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
             padding: 15px 20px;
-            border-radius: 6px;
+            border-radius: 8px;
             color: white;
             font-weight: 500;
             z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             max-width: 300px;
             word-wrap: break-word;
         `;
@@ -563,24 +459,6 @@ class GoalManager {
 function resetForm() {
     if (window.goalManager) {
         window.goalManager.resetForm();
-    }
-}
-
-function openProgressModal(goalId) {
-    console.log('🔍 Global openProgressModal called with goalId:', goalId);
-    console.log('🔍 window.goalManager available:', !!window.goalManager);
-    
-    if (window.goalManager) {
-        console.log('🔍 Calling goalManager.openProgressModal');
-        window.goalManager.openProgressModal(goalId);
-    } else {
-        console.error('❌ GoalManager not available');
-    }
-}
-
-function closeProgressModal() {
-    if (window.goalManager) {
-        window.goalManager.closeProgressModal();
     }
 }
 
@@ -623,12 +501,8 @@ function logout() {
 
 // Close modals when clicking outside
 window.onclick = function(event) {
-    const progressModal = document.getElementById('progressModal');
     const editModal = document.getElementById('editModal');
     
-    if (event.target === progressModal) {
-        closeProgressModal();
-    }
     if (event.target === editModal) {
         closeEditModal();
     }

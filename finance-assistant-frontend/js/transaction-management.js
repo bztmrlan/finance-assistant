@@ -34,8 +34,8 @@ function checkAuth() {
     const userEmail = localStorage.getItem('userEmail');
     
     console.log('Token exists:', !!token);
-    console.log('Token value:', token ? token.substring(0, 50) + '...' : 'none');
-    console.log('User email:', userEmail);
+            console.log('Token exists:', !!token);
+            console.log('User email exists:', !!userEmail);
     console.log('Current URL:', window.location.href);
     console.log('CONFIG available:', typeof CONFIG !== 'undefined');
     
@@ -83,7 +83,7 @@ function checkAuth() {
 async function verifyToken(token) {
     try {
         console.log('Verifying token...');
-        console.log('Token to verify:', token ? token.substring(0, 20) + '...' : 'none');
+        console.log('Token to verify:', !!token);
         
         // Try to verify token with backend
         const response = await fetch(`${CONFIG.getBackendUrl()}/auth/verify`, {
@@ -160,7 +160,7 @@ function debounce(func, wait) {
 async function loadCategories(token) {
     try {
         console.log('=== LOADING CATEGORIES ===');
-        console.log('Using token for categories:', token ? token.substring(0, 50) + '...' : 'none');
+        console.log('Using token for categories:', !!token);
         
         if (!token) {
             console.error('No auth token provided');
@@ -397,7 +397,7 @@ function populateCategoryFilter() {
 async function loadTransactions(token) {
     try {
         console.log('=== LOADING TRANSACTIONS ===');
-        console.log('Using token for transactions:', token ? token.substring(0, 50) + '...' : 'none');
+        console.log('Using token for transactions:', !!token);
         
         if (!token) {
             console.error('No auth token provided');
