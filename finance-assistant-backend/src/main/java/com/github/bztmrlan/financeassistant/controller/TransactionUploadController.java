@@ -3,6 +3,7 @@ package com.github.bztmrlan.financeassistant.controller;
 import com.github.bztmrlan.financeassistant.dto.TransactionUploadResponse;
 import com.github.bztmrlan.financeassistant.model.User;
 import com.github.bztmrlan.financeassistant.repository.UserRepository;
+import com.github.bztmrlan.financeassistant.security.CustomUserDetailsService;
 import com.github.bztmrlan.financeassistant.service.TransactionUploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -130,35 +131,7 @@ public class TransactionUploadController {
         }
         
         Object principal = authentication.getPrincipal();
-        UUID userId = null;
-        
-
-        if (principal instanceof com.github.bztmrlan.financeassistant.security.CustomUserDetailsService.CustomUserDetails) {
-            userId = ((com.github.bztmrlan.financeassistant.security.CustomUserDetailsService.CustomUserDetails) principal).getUserId();
-        }
-
-        else if (principal instanceof String) {
-            try {
-                userId = UUID.fromString((String) principal);
-            } catch (IllegalArgumentException e) {
-                log.error("Invalid UUID format in authentication principal: {}", principal);
-                return null;
-            }
-        }
-
-        else if (principal instanceof UUID) {
-            userId = (UUID) principal;
-        }
-        else {
-            log.error("Unsupported authentication principal type: {}", 
-                principal.getClass().getSimpleName());
-            return null;
-        }
-        
-        if (userId != null) {
-            return userRepository.findById(userId).orElse(null);
-        }
-        
-        return null;
+        UUID userId = ((CustomUserDetailsService.CustomUserDetails) principal).getUserId();
+        return userRepository.findById(userId).orElse(null);
     }
 } 

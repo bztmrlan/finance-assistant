@@ -2,6 +2,7 @@ package com.github.bztmrlan.financeassistant.controller;
 
 import com.github.bztmrlan.financeassistant.dto.InsightRequest;
 import com.github.bztmrlan.financeassistant.dto.InsightResponse;
+import com.github.bztmrlan.financeassistant.security.CustomUserDetailsService;
 import com.github.bztmrlan.financeassistant.service.InsightService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -184,19 +185,11 @@ public class InsightController {
 
 
     private UUID extractUserId(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalArgumentException("Authentication not available");
         }
-        
-        try {
-            Object principal = authentication.getPrincipal();
-            if (principal instanceof String) {
-                return UUID.fromString((String) principal);
-            }
-            return null;
-        } catch (Exception e) {
-            log.error("Error extracting user ID from authentication", e);
-            return null;
-        }
+
+        Object principal = authentication.getPrincipal();
+        return ((CustomUserDetailsService.CustomUserDetails) principal).getUserId();
     }
 } 

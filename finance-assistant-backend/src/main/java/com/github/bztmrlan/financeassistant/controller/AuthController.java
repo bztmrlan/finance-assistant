@@ -1,10 +1,12 @@
 package com.github.bztmrlan.financeassistant.controller;
 
+import com.github.bztmrlan.financeassistant.dto.AuthRequest;
+import com.github.bztmrlan.financeassistant.dto.AuthResponse;
+import com.github.bztmrlan.financeassistant.dto.RegisterRequest;
 import com.github.bztmrlan.financeassistant.model.User;
 import com.github.bztmrlan.financeassistant.repository.UserRepository;
 import com.github.bztmrlan.financeassistant.security.CustomUserDetailsService;
 import com.github.bztmrlan.financeassistant.security.JwtUtil;
-import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -40,7 +42,7 @@ public class AuthController {
             return ResponseEntity.status(401).body("Invalid credentials");
         }
         final UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        final String jwt = jwtUtil.generateToken(userDetails, ((CustomUserDetailsService.CustomUserDetails) userDetails).getUserId());
+        final String jwt = jwtUtil.generateToken(userDetails);
         return ResponseEntity.ok(new AuthResponse(jwt));
     }
 
@@ -60,7 +62,7 @@ public class AuthController {
         userRepository.save(user);
         
         final UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        final String jwt = jwtUtil.generateToken(userDetails, ((CustomUserDetailsService.CustomUserDetails) userDetails).getUserId());
+        final String jwt = jwtUtil.generateToken(userDetails);
         return ResponseEntity.ok(new AuthResponse(jwt));
     }
 
@@ -92,23 +94,5 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(401).body("Token verification failed");
         }
-    }
-
-    @Data
-    public static class AuthRequest {
-        private String email;
-        private String password;
-    }
-
-    @Data
-    public static class RegisterRequest {
-        private String name;
-        private String email;
-        private String password;
-    }
-
-    @Data
-    public static class AuthResponse {
-        private final String token;
     }
 }

@@ -67,7 +67,7 @@ public class BudgetControllerTest {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         
-        // Create test user
+
         testUser = User.builder()
                 .id(UUID.randomUUID())
                 .name("Test User")
@@ -76,14 +76,13 @@ public class BudgetControllerTest {
                 .createdAt(Instant.now())
                 .build();
 
-        // Create test category
+
         testCategory = Category.builder()
                 .id(UUID.randomUUID())
                 .name("Groceries")
                 .type(com.github.bztmrlan.financeassistant.enums.CategoryType.EXPENSE)
                 .build();
 
-        // Create test budget
         testBudget = Budget.builder()
                 .id(UUID.randomUUID())
                 .name("Monthly Budget")
@@ -94,7 +93,7 @@ public class BudgetControllerTest {
                 .categories(new ArrayList<>())
                 .build();
 
-        // Create test budget category
+
         testBudgetCategory = BudgetCategory.builder()
                 .id(UUID.randomUUID())
                 .budget(testBudget)
@@ -103,7 +102,7 @@ public class BudgetControllerTest {
                 .spentAmount(new BigDecimal("100.00"))
                 .build();
 
-        // Create mock authentication
+
         CustomUserDetailsService.CustomUserDetails userDetails = 
             new CustomUserDetailsService.CustomUserDetails(
                 testUser.getId(), 
@@ -116,11 +115,11 @@ public class BudgetControllerTest {
 
     @Test
     void testCreateBudget_Success() throws Exception {
-        // Arrange
+
         BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
         request.setBudget(testBudget);
         
-        // Create CategoryLimitRequest objects instead of BudgetCategory
+
         BudgetController.CategoryLimitRequest categoryLimit = new BudgetController.CategoryLimitRequest();
         categoryLimit.setCategoryId(testCategory.getId());
         categoryLimit.setLimitAmount(new BigDecimal("500.00"));
@@ -131,7 +130,7 @@ public class BudgetControllerTest {
         when(budgetManagementService.createBudget(any(Budget.class), anyList()))
                 .thenReturn(testBudget);
 
-        // Act & Assert
+
         mockMvc.perform(post("/api/budgets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
@@ -145,11 +144,10 @@ public class BudgetControllerTest {
 
     @Test
     void testCreateBudget_UserNotFound() throws Exception {
-        // Arrange
+
         BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
         request.setBudget(testBudget);
-        
-        // Create CategoryLimitRequest objects instead of BudgetCategory
+
         BudgetController.CategoryLimitRequest categoryLimit = new BudgetController.CategoryLimitRequest();
         categoryLimit.setCategoryId(testCategory.getId());
         categoryLimit.setLimitAmount(new BigDecimal("500.00"));
@@ -157,7 +155,6 @@ public class BudgetControllerTest {
 
         when(userRepository.findById(testUser.getId())).thenReturn(Optional.empty());
 
-        // Act & Assert
         mockMvc.perform(post("/api/budgets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
@@ -169,11 +166,10 @@ public class BudgetControllerTest {
 
     @Test
     void testCreateBudget_ServiceException() throws Exception {
-        // Arrange
+
         BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
         request.setBudget(testBudget);
-        
-        // Create CategoryLimitRequest objects instead of BudgetCategory
+
         BudgetController.CategoryLimitRequest categoryLimit = new BudgetController.CategoryLimitRequest();
         categoryLimit.setCategoryId(testCategory.getId());
         categoryLimit.setLimitAmount(new BigDecimal("500.00"));
@@ -184,7 +180,6 @@ public class BudgetControllerTest {
         when(budgetManagementService.createBudget(any(Budget.class), anyList()))
                 .thenThrow(new RuntimeException("Service error"));
 
-        // Act & Assert
         mockMvc.perform(post("/api/budgets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
@@ -194,12 +189,11 @@ public class BudgetControllerTest {
 
     @Test
     void testGetUserBudgets_Success() throws Exception {
-        // Arrange
+
         List<Budget> budgets = Arrays.asList(testBudget);
         when(budgetManagementService.getUserBudgets(testUser.getId())).thenReturn(budgets);
         when(budgetManagementService.updateBudgetSpending(testBudget.getId())).thenReturn(testBudget);
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets")
                 .principal(mockAuthentication))
                 .andExpect(status().isOk())
@@ -212,11 +206,10 @@ public class BudgetControllerTest {
 
     @Test
     void testGetUserBudgets_ServiceException() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenThrow(new RuntimeException("Service error"));
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets")
                 .principal(mockAuthentication))
                 .andExpect(status().isInternalServerError());
@@ -224,12 +217,11 @@ public class BudgetControllerTest {
 
     @Test
     void testGetActiveUserBudgets_Success() throws Exception {
-        // Arrange
+
         List<Budget> activeBudgets = Arrays.asList(testBudget);
         when(budgetManagementService.getActiveUserBudgets(testUser.getId())).thenReturn(activeBudgets);
         when(budgetManagementService.updateBudgetSpending(testBudget.getId())).thenReturn(testBudget);
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets/active")
                 .principal(mockAuthentication))
                 .andExpect(status().isOk())
@@ -242,11 +234,10 @@ public class BudgetControllerTest {
 
     @Test
     void testGetActiveUserBudgets_ServiceException() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getActiveUserBudgets(testUser.getId()))
                 .thenThrow(new RuntimeException("Service error"));
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets/active")
                 .principal(mockAuthentication))
                 .andExpect(status().isInternalServerError());
@@ -254,7 +245,6 @@ public class BudgetControllerTest {
 
     @Test
     void testGetBudgetSummary_Success() throws Exception {
-        // Arrange
         BudgetManagementService.BudgetSummary summary = BudgetManagementService.BudgetSummary.builder()
                 .budgetId(testBudget.getId())
                 .budgetName("Monthly Budget")
@@ -279,7 +269,6 @@ public class BudgetControllerTest {
                 .thenReturn(Arrays.asList(testBudget));
         when(budgetManagementService.getBudgetSummary(testBudget.getId())).thenReturn(summary);
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets/{budgetId}/summary", testBudget.getId())
                 .principal(mockAuthentication))
                 .andExpect(status().isOk())
@@ -293,11 +282,10 @@ public class BudgetControllerTest {
 
     @Test
     void testGetBudgetSummary_BudgetNotFound() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(new ArrayList<>());
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets/{budgetId}/summary", UUID.randomUUID())
                 .principal(mockAuthentication))
                 .andExpect(status().isNotFound());
@@ -305,13 +293,12 @@ public class BudgetControllerTest {
 
     @Test
     void testGetBudgetSummary_ServiceException() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(Arrays.asList(testBudget));
         when(budgetManagementService.getBudgetSummary(testBudget.getId()))
                 .thenThrow(new RuntimeException("Service error"));
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets/{budgetId}/summary", testBudget.getId())
                 .principal(mockAuthentication))
                 .andExpect(status().isInternalServerError());
@@ -319,7 +306,7 @@ public class BudgetControllerTest {
 
     @Test
     void testUpdateCategoryLimit_Success() throws Exception {
-        // Arrange
+
         BudgetController.UpdateLimitRequest request = new BudgetController.UpdateLimitRequest();
         request.setNewLimit(new BigDecimal("600.00"));
 
@@ -336,7 +323,6 @@ public class BudgetControllerTest {
         when(budgetManagementService.updateCategoryLimit(testBudget.getId(), testCategory.getId(), new BigDecimal("600.00")))
                 .thenReturn(updatedCategory);
 
-        // Act & Assert
         mockMvc.perform(put("/api/budgets/{budgetId}/categories/{categoryId}/limit", 
                 testBudget.getId(), testCategory.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -350,14 +336,13 @@ public class BudgetControllerTest {
 
     @Test
     void testUpdateCategoryLimit_BudgetNotFound() throws Exception {
-        // Arrange
+
         BudgetController.UpdateLimitRequest request = new BudgetController.UpdateLimitRequest();
         request.setNewLimit(new BigDecimal("600.00"));
 
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(new ArrayList<>());
 
-        // Act & Assert
         mockMvc.perform(put("/api/budgets/{budgetId}/categories/{categoryId}/limit", 
                 UUID.randomUUID(), testCategory.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -368,7 +353,6 @@ public class BudgetControllerTest {
 
     @Test
     void testUpdateCategoryLimit_ServiceException() throws Exception {
-        // Arrange
         BudgetController.UpdateLimitRequest request = new BudgetController.UpdateLimitRequest();
         request.setNewLimit(new BigDecimal("600.00"));
 
@@ -377,7 +361,6 @@ public class BudgetControllerTest {
         when(budgetManagementService.updateCategoryLimit(any(), any(), any()))
                 .thenThrow(new RuntimeException("Service error"));
 
-        // Act & Assert
         mockMvc.perform(put("/api/budgets/{budgetId}/categories/{categoryId}/limit", 
                 testBudget.getId(), testCategory.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -388,7 +371,7 @@ public class BudgetControllerTest {
 
     @Test
     void testAddCategoryLimit_Success() throws Exception {
-        // Arrange
+
         BudgetController.AddCategoryLimitRequest request = new BudgetController.AddCategoryLimitRequest();
         request.setCategoryId(testCategory.getId());
         request.setLimitAmount(new BigDecimal("300.00"));
@@ -406,7 +389,6 @@ public class BudgetControllerTest {
         when(budgetManagementService.addCategoryLimit(testBudget.getId(), testCategory.getId(), new BigDecimal("300.00")))
                 .thenReturn(newCategoryLimit);
 
-        // Act & Assert
         mockMvc.perform(post("/api/budgets/{budgetId}/categories", testBudget.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
@@ -419,7 +401,7 @@ public class BudgetControllerTest {
 
     @Test
     void testAddCategoryLimit_BudgetNotFound() throws Exception {
-        // Arrange
+
         BudgetController.AddCategoryLimitRequest request = new BudgetController.AddCategoryLimitRequest();
         request.setCategoryId(testCategory.getId());
         request.setLimitAmount(new BigDecimal("300.00"));
@@ -427,7 +409,6 @@ public class BudgetControllerTest {
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(new ArrayList<>());
 
-        // Act & Assert
         mockMvc.perform(post("/api/budgets/{budgetId}/categories", UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
@@ -437,7 +418,7 @@ public class BudgetControllerTest {
 
     @Test
     void testAddCategoryLimit_ServiceException() throws Exception {
-        // Arrange
+
         BudgetController.AddCategoryLimitRequest request = new BudgetController.AddCategoryLimitRequest();
         request.setCategoryId(testCategory.getId());
         request.setLimitAmount(new BigDecimal("300.00"));
@@ -447,7 +428,6 @@ public class BudgetControllerTest {
         when(budgetManagementService.addCategoryLimit(any(), any(), any()))
                 .thenThrow(new RuntimeException("Service error"));
 
-        // Act & Assert
         mockMvc.perform(post("/api/budgets/{budgetId}/categories", testBudget.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
@@ -457,12 +437,11 @@ public class BudgetControllerTest {
 
     @Test
     void testEvaluateBudget_Success() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(Arrays.asList(testBudget));
         doNothing().when(budgetManagementService).checkBudgetLimitsAndCreateAlerts(testBudget.getId());
 
-        // Act & Assert
         mockMvc.perform(post("/api/budgets/{budgetId}/evaluate", testBudget.getId())
                 .principal(mockAuthentication))
                 .andExpect(status().isOk())
@@ -473,11 +452,10 @@ public class BudgetControllerTest {
 
     @Test
     void testEvaluateBudget_BudgetNotFound() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(new ArrayList<>());
 
-        // Act & Assert
         mockMvc.perform(post("/api/budgets/{budgetId}/evaluate", UUID.randomUUID())
                 .principal(mockAuthentication))
                 .andExpect(status().isNotFound());
@@ -485,13 +463,12 @@ public class BudgetControllerTest {
 
     @Test
     void testEvaluateBudget_ServiceException() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(Arrays.asList(testBudget));
         doThrow(new RuntimeException("Service error"))
                 .when(budgetManagementService).checkBudgetLimitsAndCreateAlerts(testBudget.getId());
 
-        // Act & Assert
         mockMvc.perform(post("/api/budgets/{budgetId}/evaluate", testBudget.getId())
                 .principal(mockAuthentication))
                 .andExpect(status().isInternalServerError());
@@ -499,11 +476,10 @@ public class BudgetControllerTest {
 
     @Test
     void testGetBudgetsNeedingAttention_Success() throws Exception {
-        // Arrange
+
         List<Budget> attentionBudgets = Arrays.asList(testBudget);
         when(budgetManagementService.getActiveUserBudgets(testUser.getId())).thenReturn(attentionBudgets);
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets/attention-needed")
                 .principal(mockAuthentication))
                 .andExpect(status().isOk())
@@ -514,11 +490,10 @@ public class BudgetControllerTest {
 
     @Test
     void testGetBudgetsNeedingAttention_ServiceException() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getActiveUserBudgets(testUser.getId()))
                 .thenThrow(new RuntimeException("Service error"));
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets/attention-needed")
                 .principal(mockAuthentication))
                 .andExpect(status().isInternalServerError());
@@ -526,12 +501,11 @@ public class BudgetControllerTest {
 
     @Test
     void testArchiveBudget_Success() throws Exception {
-        // Arrange
+
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(Arrays.asList(testBudget));
         doNothing().when(budgetManagementService).archiveBudget(testBudget.getId());
 
-        // Act & Assert
         mockMvc.perform(put("/api/budgets/{budgetId}/archive", testBudget.getId())
                 .principal(mockAuthentication))
                 .andExpect(status().isOk())
@@ -542,11 +516,9 @@ public class BudgetControllerTest {
 
     @Test
     void testArchiveBudget_BudgetNotFound() throws Exception {
-        // Arrange
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(new ArrayList<>());
 
-        // Act & Assert
         mockMvc.perform(put("/api/budgets/{budgetId}/archive", UUID.randomUUID())
                 .principal(mockAuthentication))
                 .andExpect(status().isNotFound());
@@ -554,13 +526,11 @@ public class BudgetControllerTest {
 
     @Test
     void testArchiveBudget_ServiceException() throws Exception {
-        // Arrange
         when(budgetManagementService.getUserBudgets(testUser.getId()))
                 .thenReturn(Arrays.asList(testBudget));
         doThrow(new RuntimeException("Service error"))
                 .when(budgetManagementService).archiveBudget(testBudget.getId());
 
-        // Act & Assert
         mockMvc.perform(put("/api/budgets/{budgetId}/archive", testBudget.getId())
                 .principal(mockAuthentication))
                 .andExpect(status().isInternalServerError());
@@ -568,10 +538,9 @@ public class BudgetControllerTest {
 
     @Test
     void testAuthenticationNotAvailable() throws Exception {
-        // Arrange - Create authentication without CustomUserDetails
+
         Authentication invalidAuth = new UsernamePasswordAuthenticationToken("invalid", null, null);
 
-        // Act & Assert
         mockMvc.perform(get("/api/budgets")
                 .principal(invalidAuth))
                 .andExpect(status().isInternalServerError());
@@ -579,7 +548,6 @@ public class BudgetControllerTest {
 
     @Test
     void testNullAuthentication() throws Exception {
-        // Act & Assert
         mockMvc.perform(get("/api/budgets"))
                 .andExpect(status().isInternalServerError());
     }

@@ -70,27 +70,6 @@ public class RuleEngineController {
         }
         
         Object principal = authentication.getPrincipal();
-        
-
-        if (principal instanceof CustomUserDetailsService.CustomUserDetails) {
-            return ((CustomUserDetailsService.CustomUserDetails) principal).getUserId();
-        }
-        
-
-        if (principal instanceof String) {
-            try {
-                return UUID.fromString((String) principal);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid UUID format in authentication principal: " + principal);
-            }
-        }
-        
-
-        if (principal instanceof UUID) {
-            return (UUID) principal;
-        }
-        
-        throw new IllegalArgumentException("Unsupported authentication principal type: " + 
-            (principal != null ? principal.getClass().getSimpleName() : "null"));
+        return ((CustomUserDetailsService.CustomUserDetails) principal).getUserId();
     }
 } 

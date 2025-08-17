@@ -154,17 +154,7 @@ public class TransactionController {
 
         try {
             Object principal = authentication.getPrincipal();
-            
-            if (principal instanceof CustomUserDetailsService.CustomUserDetails) {
-                return userRepository.findById(((CustomUserDetailsService.CustomUserDetails) principal).getUserId()).orElse(null);
-            } else if (principal instanceof String) {
-                UUID userId = UUID.fromString((String) principal);
-                return userRepository.findById(userId).orElse(null);
-            } else if (principal instanceof UUID) {
-                return userRepository.findById((UUID) principal).orElse(null);
-            }
-            
-            return null;
+            return userRepository.findById(((CustomUserDetailsService.CustomUserDetails) principal).getUserId()).orElse(null);
         } catch (Exception e) {
             log.error("Error extracting user from authentication", e);
             return null;

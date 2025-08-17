@@ -1,18 +1,16 @@
 package com.github.bztmrlan.financeassistant.controller;
 
+import com.github.bztmrlan.financeassistant.dto.*;
 import com.github.bztmrlan.financeassistant.model.Budget;
 import com.github.bztmrlan.financeassistant.model.BudgetCategory;
+import com.github.bztmrlan.financeassistant.model.User;
 import com.github.bztmrlan.financeassistant.service.BudgetManagementService;
-import com.github.bztmrlan.financeassistant.service.BudgetEvaluationService;
 import com.github.bztmrlan.financeassistant.security.CustomUserDetailsService;
 import com.github.bztmrlan.financeassistant.repository.UserRepository;
 import com.github.bztmrlan.financeassistant.repository.CategoryRepository;
-import com.github.bztmrlan.financeassistant.repository.BudgetCategoryRepository;
-import com.github.bztmrlan.financeassistant.repository.BudgetRepository;
+
 import com.github.bztmrlan.financeassistant.model.Category;
-import com.github.bztmrlan.financeassistant.enums.BudgetStatus;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -33,12 +29,8 @@ import java.util.UUID;
 public class BudgetController {
 
     private final BudgetManagementService budgetManagementService;
-    private final BudgetEvaluationService budgetEvaluationService;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final BudgetCategoryRepository budgetCategoryRepository;
-    private final BudgetRepository budgetRepository;
-
 
 
     @PostMapping
@@ -197,7 +189,7 @@ public class BudgetController {
     @PostMapping("/{budgetId}/categories")
     public ResponseEntity<BudgetCategory> addCategoryLimit(
             @PathVariable UUID budgetId,
-            @RequestBody AddCategoryLimitRequest request,
+            @RequestBody CategoryLimitRequest request,
             Authentication authentication) {
         
         try {
@@ -222,58 +214,11 @@ public class BudgetController {
         }
     }
 
-    @GetMapping("/test-delete/{budgetId}/categories/{categoryId}")
-    public ResponseEntity<String> testDeleteCategoryLimit(
-            @PathVariable UUID budgetId,
-            @PathVariable UUID categoryId,
-            Authentication authentication) {
-        
-        log.info("TEST DELETE request received for budget {} category {}", budgetId, categoryId);
-        
-        try {
-            UUID userId = extractUserIdFromAuthentication(authentication);
-
-
-            Budget budget = budgetRepository.findById(budgetId)
-                    .orElseThrow(() -> new IllegalArgumentException("Budget not found"));
-
-            
-            Category category = categoryRepository.findById(categoryId)
-                    .orElseThrow(() -> new IllegalArgumentException("Category not found"));
-
-            
-
-            Optional<BudgetCategory> budgetCategory = budgetCategoryRepository.findByBudgetAndCategory(budget, category);
-            if (budgetCategory.isPresent()) {
-                BudgetCategory bc = budgetCategory.get();
-
-
-
-                
-
-                long totalCount = budgetCategoryRepository.count();
-
-                
-                return ResponseEntity.ok("Test successful - found budget category with ID: " + bc.getId() + ", Total count: " + totalCount);
-            } else {
-                long totalCount = budgetCategoryRepository.count();
-                return ResponseEntity.ok("Test successful - no budget category found, Total count: " + totalCount);
-            }
-            
-        } catch (Exception e) {
-            log.error("Test failed with exception:", e);
-            return ResponseEntity.badRequest().body("Test failed: " + e.getMessage());
-        }
-    }
-
     @DeleteMapping("/{budgetId}/categories/{categoryId}")
     public ResponseEntity<String> deleteCategoryLimit(
             @PathVariable UUID budgetId,
             @PathVariable UUID categoryId,
             Authentication authentication) {
-        
-
-        
         try {
             UUID userId = extractUserIdFromAuthentication(authentication);
 
@@ -294,7 +239,7 @@ public class BudgetController {
         } catch (Exception e) {
             log.error("Error deleting category limit", e);
             log.error("Exception details:", e);
-            log.error("Exception stack trace:", e.getStackTrace());
+            log.error("Exception stack trace: ", e.getStackTrace());
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
@@ -401,30 +346,10 @@ public class BudgetController {
         }
         
         Object principal = authentication.getPrincipal();
-        
-
-        if (principal instanceof CustomUserDetailsService.CustomUserDetails) {
-            return ((CustomUserDetailsService.CustomUserDetails) principal).getUserId();
-        }
-        
-
-        if (principal instanceof String) {
-            try {
-                return UUID.fromString((String) principal);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid UUID format in authentication principal: " + principal);
-            }
-        }
-
-        if (principal instanceof UUID) {
-            return (UUID) principal;
-        }
-        
-        throw new IllegalArgumentException("Unsupported authentication principal type: " + 
-            (principal != null ? principal.getClass().getSimpleName() : "null"));
+        return ((CustomUserDetailsService.CustomUserDetails) principal).getUserId();
     }
     
-    private com.github.bztmrlan.financeassistant.model.User createUserReference(UUID userId) {
+    private User createUserReference(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
@@ -459,10 +384,6 @@ public class BudgetController {
                     );
                 })
                 .toList() : List.of();
-
-        BigDecimal totalBudgetAmount = categoryResponses.stream()
-                .map(BudgetCategoryResponse::getLimitAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
         
         BudgetResponse response = new BudgetResponse(
             budget.getId(),
@@ -472,70 +393,11 @@ public class BudgetController {
             budget.getEndDate(),
             budget.getStatus(),
             budget.getUser() != null ? budget.getUser().getId() : null,
-            budget.getAmount() != null ? budget.getAmount() : totalBudgetAmount,
             budget.getPeriod(),
             categoryResponses
         );
             
         log.debug("Converted budget response: {}", response);
         return response;
-    }
-
-    @Data
-    public static class CreateBudgetRequest {
-        private Budget budget;
-        private List<CategoryLimitRequest> categoryLimits;
-    }
-    
-    @Data
-    public static class CategoryLimitRequest {
-        private UUID categoryId;
-        private BigDecimal limitAmount;
-    }
-
-    @Data
-    public static class UpdateLimitRequest {
-        private java.math.BigDecimal newLimit;
-    }
-
-    @Data
-    public static class UpdateBudgetRequest {
-        private String name;
-        private String description;
-        private java.math.BigDecimal amount;
-        private String period;
-        private LocalDate startDate;
-        private LocalDate endDate;
-    }
-
-    @Data
-    public static class AddCategoryLimitRequest {
-        private UUID categoryId;
-        private java.math.BigDecimal limitAmount;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class BudgetResponse {
-        private UUID id;
-        private String name;
-        private String description;
-        private LocalDate startDate;
-        private LocalDate endDate;
-        private BudgetStatus status;
-        private UUID userId;
-        private BigDecimal amount;
-        private String period;
-        private List<BudgetCategoryResponse> categoryLimits;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class BudgetCategoryResponse {
-        private UUID id;
-        private UUID categoryId;
-        private String categoryName;
-        private BigDecimal limitAmount;
-        private BigDecimal spentAmount;
     }
 } 
