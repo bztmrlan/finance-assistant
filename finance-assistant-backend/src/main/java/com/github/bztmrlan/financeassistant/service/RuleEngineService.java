@@ -10,6 +10,7 @@ import com.github.bztmrlan.financeassistant.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,7 +27,7 @@ public class RuleEngineService {
     private final TransactionRepository transactionRepository;
     private final AlertRepository alertRepository;
 
-
+    @Transactional
     public void evaluateRulesForUser(UUID userId) {
         log.info("Evaluating rules for user: {}", userId);
         
@@ -37,7 +38,7 @@ public class RuleEngineService {
         }
     }
 
-
+    @Transactional
     public void evaluateRule(Rule rule) {
         log.debug("Evaluating rule: {}", rule.getName());
         
@@ -55,7 +56,7 @@ public class RuleEngineService {
         }
     }
 
-
+    @Transactional
     public void evaluateRulesForTransaction(Transaction transaction) {
         log.debug("Evaluating rules for new transaction: {}", transaction.getId());
 

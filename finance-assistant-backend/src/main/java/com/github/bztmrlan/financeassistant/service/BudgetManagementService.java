@@ -1,5 +1,6 @@
 package com.github.bztmrlan.financeassistant.service;
 
+import com.github.bztmrlan.financeassistant.dto.UpdateBudgetRequest;
 import com.github.bztmrlan.financeassistant.model.*;
 import com.github.bztmrlan.financeassistant.repository.*;
 import com.github.bztmrlan.financeassistant.enums.BudgetStatus;
@@ -91,7 +92,9 @@ public class BudgetManagementService {
                     .orElseThrow(() -> new IllegalArgumentException("Category not found"));
 
             Optional<BudgetCategory> budgetCategory = budgetCategoryRepository.findByBudgetAndCategory(budget, category);
+            
             budgetCategory.ifPresent(bc -> budgetCategoryRepository.deleteById(bc.getId()));
+
         } catch (Exception e) {
             log.error("Exception during category deletion: {}", e.getMessage(), e);
             throw e;
@@ -156,7 +159,7 @@ public class BudgetManagementService {
     }
 
     @Transactional
-    public Budget updateBudget(UUID budgetId, com.github.bztmrlan.financeassistant.controller.BudgetController.UpdateBudgetRequest request) {
+    public Budget updateBudget(UUID budgetId, UpdateBudgetRequest request) {
         Budget budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new IllegalArgumentException("Budget not found"));
         
@@ -166,9 +169,6 @@ public class BudgetManagementService {
         }
         if (request.getDescription() != null) {
             budget.setDescription(request.getDescription());
-        }
-        if (request.getAmount() != null) {
-            budget.setAmount(request.getAmount());
         }
         if (request.getPeriod() != null) {
             budget.setPeriod(request.getPeriod());
@@ -181,8 +181,8 @@ public class BudgetManagementService {
         }
         
         Budget updatedBudget = budgetRepository.save(budget);
-        log.info("Updated budget {} with new details: name={}, amount={}, period={}, startDate={}, endDate={}", 
-                budgetId, request.getName(), request.getAmount(), request.getPeriod(), request.getStartDate(), request.getEndDate());
+        log.info("Updated budget {} with new details: name={}, period={}, startDate={}, endDate={}", 
+                budgetId, request.getName(), request.getPeriod(), request.getStartDate(), request.getEndDate());
         
         return updatedBudget;
     }
@@ -367,41 +367,6 @@ public class BudgetManagementService {
             budgetId, categoryId, displaySpending);
     }
 
-
-    @Transactional
-    public void cleanupInvalidBudgetCategories(UUID userId) {
-
-        
-        List<Budget> userBudgets = budgetRepository.findByUserId(userId);
-        int totalRemoved = 0;
-        
-        for (Budget budget : userBudgets) {
-            List<BudgetCategory> invalidCategories = budget.getCategories().stream()
-                .filter(bc -> bc.getCategory() != null && 
-                             bc.getCategory().getUser() != null && 
-                             !bc.getCategory().getUser().getId().equals(userId))
-                .toList();
-            
-            if (!invalidCategories.isEmpty()) {
-                log.warn("Budget {} has {} invalid categories from other users", 
-                    budget.getName(), invalidCategories.size());
-                
-                for (BudgetCategory invalidCategory : invalidCategories) {
-                    log.warn("Removing invalid category: {} (belongs to user: {})", 
-                        invalidCategory.getCategory().getName(),
-                        invalidCategory.getCategory().getUser().getId());
-                    
-                    budget.getCategories().remove(invalidCategory);
-                    budgetCategoryRepository.delete(invalidCategory);
-                    totalRemoved++;
-                }
-                
-                budgetRepository.save(budget);
-            }
-        }
-        
-
-    }
 
     @Builder
     @Getter

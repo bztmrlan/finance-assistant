@@ -34,7 +34,7 @@ public class HuggingFaceCategorizationService {
     @Value("${huggingface.api.key}")
     private String apiKey;
 
-    @Value("${huggingface.model:facebook/bart-large-mnli}")
+    @Value("#{'${huggingface.model}'.split(',')[0]}")
     private String model;
 
     @Value("${huggingface.max-length:512}")

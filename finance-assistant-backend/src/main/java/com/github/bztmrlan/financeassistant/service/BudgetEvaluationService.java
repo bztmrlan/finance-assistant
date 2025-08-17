@@ -30,7 +30,6 @@ public class BudgetEvaluationService {
         for (Budget budget : activeBudgets) {
             try {
                 evaluateBudget(budget.getId());
-                log.debug("Budget evaluation completed for budget: {}", budget.getId());
             } catch (Exception e) {
                 log.error("Error during budget evaluation for budget: {}", budget.getId(), e);
             }
@@ -50,7 +49,6 @@ public class BudgetEvaluationService {
         for (Budget budget : activeBudgets) {
             try {
                 evaluateBudget(budget.getId());
-                log.debug("Budget evaluation completed for budget: {}", budget.getId());
             } catch (Exception e) {
                 log.error("Error during budget evaluation for budget: {}", budget.getId(), e);
             }
@@ -64,12 +62,8 @@ public class BudgetEvaluationService {
         log.debug("Evaluating budget: {}", budgetId);
         
         try {
-
             budgetManagementService.checkBudgetLimitsAndCreateAlerts(budgetId);
-            
-
             checkBudgetPeriodEnd(budgetId);
-            
         } catch (Exception e) {
             log.error("Error evaluating budget: {}", budgetId, e);
             throw e;

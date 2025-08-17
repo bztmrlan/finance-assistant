@@ -26,20 +26,20 @@ public class GoogleGeminiService {
     @Value("${gemini.api.key}")
     private String apiKey;
 
-    @Value("${gemini.model:gemini-1.5-flash}")
-    private String modelName = "gemini-1.5-flash";
+    @Value("${gemini.model}")
+    private String modelName;
 
-    @Value("${gemini.max-tokens:2048}")
-    private Integer maxTokens = 2048;
+    @Value("${gemini.max-tokens}")
+    private Integer maxTokens;
 
-    @Value("${gemini.temperature:0.7}")
-    private Double temperature = 0.7;
+    @Value("${gemini.temperature}")
+    private Double temperature;
 
-    @Value("${gemini.top-p:0.9}")
-    private Double topP = 0.9;
+    @Value("${gemini.top-p}")
+    private Double topP;
 
-    @Value("${gemini.top-k:40}")
-    private Integer topK = 40;
+    @Value("${gemini.top-k}")
+    private Integer topK;
 
 
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
